@@ -1,28 +1,27 @@
 using DropSpace;
 using DropSpace.DataManagers;
-using DropSpace.Models.Data;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using System.Security.Claims;
+using System.Text.Encodings.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
-
 builder.Services.AddSingleton<ClaimsFactory>();
 
-builder.Services.AddScoped<IDataManager<User, Guid>, UsersManager>();
+builder.Services.AddHostedService<DataSeed>();
 
 builder.Services.AddDbContext<ApplicationContext>(options => options.UseInMemoryDatabase("InMemory"));
 
 builder.Services.AddIdentity<IdentityUser, IdentityRole>()
     .AddDefaultTokenProviders()
-    .AddDefaultUI()
-    .AddSignInManager()
     .AddEntityFrameworkStores<ApplicationContext>();
 
 builder.Services.AddDataProtection()
@@ -42,9 +41,9 @@ builder.Services.AddAuthentication(
             options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
         }
     )
-    .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+    .AddScheme<CookieAuthenticationOptions, ChooseAuthenticationHandler>(CookieAuthenticationDefaults.AuthenticationScheme, options =>
     {
-        options.LoginPath = "/Auth/Choose";
+        options.LoginPath = "/Auth/Login";
     });
 
 builder.Services.AddAuthorization(options =>
@@ -52,7 +51,7 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("BaseAccess", pb =>
     {
         pb.RequireAuthenticatedUser()
-        .AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme/*, "OneTime"*/);
+        .AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme);
     });
 });
 
@@ -73,8 +72,6 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.UseAuthorization();
-
-app.MapRazorPages();
 
 app.MapControllerRoute(
     name: "default",

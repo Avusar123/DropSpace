@@ -8,8 +8,8 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/DropSpace.styles.css" asp-append-version="true" />
 </head>
-<body>
-    <header>
+<body class="m-0">
+    @* <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container-fluid">
                 <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">DropSpace</a>
@@ -20,10 +20,7 @@
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Сессии</a>
                         </li>
                     </ul>
                 </div>
@@ -34,13 +31,20 @@
         <main role="main" class="pb-3">
             @RenderBody()
         </main>
-    </div>
+    </div> *@
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2024 - DropSpace - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+
+    <div class="row m-0" style="min-height: 100vh">
+        <div class="col-3 p-3" style="background-color: #171717; color: white">
+            <h3 class="m-3" style="margin-left: 0 !important;"><a style="color: white" class="text-decoration-none" href="/">DropSpace</a></h3>
+
+            @* @foreach (var session in (List<Session>)ViewBag.Sessions)
+            {
+            } *@
+
         </div>
-    </footer>
+        <div class="col">@RenderBody()</div>
+    </div>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>

@@ -20,3 +20,8 @@ html {
 body {
   margin-bottom: 60px;
 }
+
+.validation-div ul {
+    list-style: none;
+    padding-left: 0;
+}
