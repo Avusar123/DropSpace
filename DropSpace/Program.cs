@@ -1,5 +1,7 @@
 using DropSpace;
 using DropSpace.DataManagers;
+using DropSpace.Manager;
+using DropSpace.Models.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
@@ -18,9 +20,11 @@ builder.Services.AddSingleton<ClaimsFactory>();
 
 builder.Services.AddHostedService<DataSeed>();
 
+builder.Services.AddScoped<SessionManager>();
+
 builder.Services.AddDbContext<ApplicationContext>(options => options.UseInMemoryDatabase("InMemory"));
 
-builder.Services.AddIdentity<IdentityUser, IdentityRole>()
+builder.Services.AddIdentity<IdentityUser, UserPlanRole>()
     .AddDefaultTokenProviders()
     .AddEntityFrameworkStores<ApplicationContext>();
 

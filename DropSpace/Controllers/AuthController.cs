@@ -1,29 +1,40 @@
 ﻿using DropSpace.DataManagers;
+using DropSpace.Manager;
 using DropSpace.Models;
+using DropSpace.Models.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
+using System.Data;
+using System.Diagnostics.Metrics;
 using System.Security.Claims;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 namespace DropSpace.Controllers
 {
     [Route("Auth")]
     public class AuthController(ClaimsFactory claimsFactory, 
-        SignInManager<IdentityUser> signInManager, UserManager<IdentityUser> userManager) : Controller
+        SignInManager<IdentityUser> signInManager, 
+        UserManager<IdentityUser> userManager,
+        SessionManager sessionManager,
+        RoleManager<UserPlanRole> roleManager) : Controller
     {
         const string INVALID_LOGGING_ATTEMPT_MESSAGE = "Неудачная попытка входа";
 
 
         [HttpPost("OneTime")]
-        public IActionResult OneTimeRegister(string? returnUrl)
+        public async Task<IActionResult> OneTimeRegister(string? returnUrl)
         {
 
             var identity = claimsFactory.CreateOneTimeIdentity(CookieAuthenticationDefaults.AuthenticationScheme);
 
-            return SignIn(new ClaimsPrincipal(identity), 
+            var principle = new ClaimsPrincipal(identity);
+
+            await sessionManager.CreateDefaultNew(principle);
+
+            return SignIn(principle, 
                 new() { 
                     RedirectUri = returnUrl, 
                     IsPersistent = true
@@ -59,7 +70,11 @@ namespace DropSpace.Controllers
                 return View(model);
             }
 
+            await userManager.AddToRoleAsync(identityuser, "PermanentUser");
+
             await signInManager.SignInAsync(identityuser, true);
+
+            await sessionManager.CreateDefaultNew(HttpContext.User);
 
             model.ReturnUrl ??= "/";
 
@@ -121,5 +136,8 @@ namespace DropSpace.Controllers
         {
             return View(new LoginModel() { ReturnUrl = returnUrl});
         }
+
     }
+
+    
 }
