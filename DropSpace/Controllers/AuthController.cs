@@ -17,11 +17,9 @@ namespace DropSpace.Controllers
     [Route("Auth")]
     public class AuthController(ClaimsFactory claimsFactory, 
         SignInManager<IdentityUser> signInManager, 
-        UserManager<IdentityUser> userManager,
-        SessionManager sessionManager,
-        RoleManager<UserPlanRole> roleManager) : Controller
+        UserManager<IdentityUser> userManager) : Controller
     {
-        const string INVALID_LOGGING_ATTEMPT_MESSAGE = "Неудачная попытка входа";
+        const string INVALIDLOGGINGATTEMPTMESSAGE = "Неудачная попытка входа";
 
 
         [HttpPost("OneTime")]
@@ -31,8 +29,6 @@ namespace DropSpace.Controllers
             var identity = claimsFactory.CreateOneTimeIdentity(CookieAuthenticationDefaults.AuthenticationScheme);
 
             var principle = new ClaimsPrincipal(identity);
-
-            await sessionManager.CreateDefaultNew(principle);
 
             return SignIn(principle, 
                 new() { 
@@ -74,9 +70,7 @@ namespace DropSpace.Controllers
 
             await signInManager.SignInAsync(identityuser, true);
 
-            await sessionManager.CreateDefaultNew(HttpContext.User);
-
-            model.ReturnUrl ??= "/";
+            model.ReturnUrl = SetIfNullReturnUrl(model.ReturnUrl);
 
             return LocalRedirect(model.ReturnUrl);
         }
@@ -96,7 +90,7 @@ namespace DropSpace.Controllers
 
             if (user == null) 
             {
-                ModelState.AddModelError(string.Empty, INVALID_LOGGING_ATTEMPT_MESSAGE);
+                ModelState.AddModelError(string.Empty, INVALIDLOGGINGATTEMPTMESSAGE);
 
                 return View(model);
             }
@@ -118,15 +112,12 @@ namespace DropSpace.Controllers
                     
                 }
 
-                ModelState.AddModelError(string.Empty, INVALID_LOGGING_ATTEMPT_MESSAGE);
+                ModelState.AddModelError(string.Empty, INVALIDLOGGINGATTEMPTMESSAGE);
 
                 return View(model);
             }
 
-            if (string.IsNullOrEmpty(model.ReturnUrl)) 
-            {
-                model.ReturnUrl = "/";
-            }
+            model.ReturnUrl = SetIfNullReturnUrl(model.ReturnUrl);
 
             return LocalRedirect(model.ReturnUrl);
         }
@@ -135,6 +126,12 @@ namespace DropSpace.Controllers
         public IActionResult Login(string? returnUrl)
         {
             return View(new LoginModel() { ReturnUrl = returnUrl});
+        }
+
+
+        private string SetIfNullReturnUrl(string returnUrl)
+        {
+            return string.IsNullOrEmpty(returnUrl) ? "/" : returnUrl;
         }
 
     }
