@@ -24,7 +24,10 @@ builder.Services.AddScoped<SessionManager>();
 
 builder.Services.AddDbContext<ApplicationContext>(options => options.UseInMemoryDatabase("InMemory"));
 
-builder.Services.AddIdentity<IdentityUser, UserPlanRole>()
+builder.Services.AddIdentity<IdentityUser, UserPlanRole>(options =>
+{
+    options.Lockout.AllowedForNewUsers = false;
+})
     .AddDefaultTokenProviders()
     .AddEntityFrameworkStores<ApplicationContext>();
 
