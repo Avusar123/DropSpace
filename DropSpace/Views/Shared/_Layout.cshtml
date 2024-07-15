@@ -13,11 +13,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
 </head>
-<body class="body-margin">
+<body class="fullscreen flex-column flex-grow-0" style="display: flex;">
     <header>
-        <nav class="navbar navbar-dark bg-black fixed-top">
+        <nav class="navbar navbar-dark bg-black">
             <div class="container-fluid">
-                <a class="navbar-brand" href="#">DropSpace</a>
+                <a class="navbar-brand" href="/">DropSpace</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasDarkNavbar" aria-controls="offcanvasDarkNavbar" aria-label="Переключить навигацию">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -56,14 +56,15 @@
                 </div>
             </div>
         </nav>
+
     </header>
-    <div class="container">
+    <div class="flex-grow-1">
         <main role="main" class="pb-3">
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
+    <footer class="border-top footer text-muted flex-grow-0">
         <div class="container">
             &copy; 2024 - DropSpace - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
         </div>

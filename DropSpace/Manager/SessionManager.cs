@@ -37,7 +37,6 @@ namespace DropSpace.Manager
             var member = new SessionMember() 
             { 
                 SessionId = id, 
-                Status = MemberStatus.Owner, 
                 UserId = claimsPrincipal.FindFirst(ClaimTypes.NameIdentifier)!.Value! 
             };
 

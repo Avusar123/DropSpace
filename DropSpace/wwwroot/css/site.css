@@ -48,6 +48,6 @@ body {
     font-size: 2em;
 }
 
-.body-margin {
-    margin: 80px 0 60px 0;
+.footer {
+    padding: 1em;
 }
