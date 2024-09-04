@@ -7,5 +7,7 @@
         public string UserId { get; set; }
 
         public Guid SessionId { get; set; }
+
+        public Session Session { get; set; }
     }
 }

@@ -1,24 +1,11 @@
 ﻿@{
     ViewData["Title"] = "Главная";
+    ViewData["ContainerClasses"] = "flex-column align-items-center justify-content-center d-flex";
 }
 
-
-<nav class="navbar navbar-dark bg-dark">
-    <div class="container p-3" style="display: block">
-        <div class="navbar-nav mr-auto flex-row gap-5 align-items-center justify-content-between" style="display: flex;">
-            <span class="nav-item text-white" style="cursor: pointer">
-                Сессия не создана
-            </span>
-            <ul class="gap-4 m-0" style="display: flex;">
-                <li class="nav-item text-white flex-column align-items-center" style="cursor: pointer; display: flex;">
-                    <div> - / - <span class="subtitle" style="letter-spacing: 0px; font-size: 0.7em; margin: 0 0 0 0.5em">MB</span></div>
-                    <div class="subtitle" style="font-size: 0.7em; letter-spacing: 1px">Максимальный объем</div>
-                </li>
-                <li class="nav-item text-white flex-column align-items-center" style="cursor: pointer; display: flex;">
-                    <div>00:00:00</div>
-                    <div class="subtitle" style="font-size: 0.7em; letter-spacing: 1px">Оставшееся время</div>
-                </li>
-            </ul>
-        </div>
-    </div>
-</nav>
+<h1 class="text-center fs-1" style="font-weight: 800">
+    Сессия не выбрана!
+</h1>
+<p class="text-center fs-5" style="color: #6e6e6e; max-width: 75%">
+    Для продолжения необходимо создать сессию или войти в уже существующую в боковом меню. Боковое меню открывается нажатием на кнопку в правом верхнем углу экрана.
+</p>
