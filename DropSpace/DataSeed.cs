@@ -1,6 +1,8 @@
 ﻿
+using DropSpace.Manager;
 using DropSpace.Models.Data;
 using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
 
 namespace DropSpace
 {
@@ -15,6 +17,8 @@ namespace DropSpace
 
             var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<UserPlanRole>>();
 
+            var sessionManager = scope.ServiceProvider.GetRequiredService<SessionManager>();
+
 
             if (!roleManager.Roles.Any())
             {
@@ -23,7 +27,7 @@ namespace DropSpace
                     Name = "PermanentUser",
                     MaxSize = 3000,
                     MaxSessions = 3,
-                    SessionDuration = TimeSpan.FromMinutes(15).Seconds
+                    SessionDuration = (int)TimeSpan.FromMinutes(15).TotalSeconds
                 };
 
                 var oneTimeUserRole = new UserPlanRole()
@@ -31,7 +35,7 @@ namespace DropSpace
                     Name = "OneTimeUser",
                     MaxSessions = 1,
                     MaxSize = 1000,
-                    SessionDuration = TimeSpan.FromMinutes(5).Seconds
+                    SessionDuration = (int)TimeSpan.FromMinutes(5).TotalSeconds
                 };
 
                 await roleManager.CreateAsync(permanentUserRole);
@@ -57,6 +61,9 @@ namespace DropSpace
                 }
 
                 await userManager.AddToRoleAsync(user, "PermanentUser");
+
+                await sessionManager.CreateDefaultNew(user);
+
             }
         }
     }

@@ -2,8 +2,10 @@ using DropSpace;
 using DropSpace.DataManagers;
 using DropSpace.Manager;
 using DropSpace.Models.Data;
+using DropSpace.Requirements;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -24,7 +26,12 @@ builder.Services.AddScoped<SessionManager>();
 
 builder.Services.AddDbContext<ApplicationContext>(options => options.UseInMemoryDatabase("InMemory"));
 
-builder.Services.AddIdentity<IdentityUser, UserPlanRole>()
+builder.Services.AddScoped<IAuthorizationHandler, MemberRequirementAuthorizationHandler>();
+
+builder.Services.AddIdentity<IdentityUser, UserPlanRole>(options =>
+{
+    options.Lockout.AllowedForNewUsers = false;
+})
     .AddDefaultTokenProviders()
     .AddEntityFrameworkStores<ApplicationContext>();
 

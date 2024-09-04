@@ -1,9 +1,8 @@
 ﻿using DropSpace.Models.Data;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
 using System.Diagnostics.CodeAnalysis;
-
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 namespace DropSpace
 {
     public class ApplicationContext(DbContextOptions options) : IdentityDbContext<IdentityUser, UserPlanRole, string>(options)
@@ -17,8 +16,6 @@ namespace DropSpace
         protected override void OnModelCreating(ModelBuilder builder)
         {
             builder.Entity<Session>().HasMany<FileModel>(session => session.Files);
-
-            builder.Entity<SessionMember>().HasOne<Session>().WithMany(session => session.Members).HasForeignKey(member => member.SessionId);
 
             base.OnModelCreating(builder);
         }

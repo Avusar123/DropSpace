@@ -1,0 +1,39 @@
+﻿@{
+    ViewData["Title"] = Model.Name;
+}
+@model DropSpace.Models.Data.Session
+<nav class="navbar navbar-dark bg-dark">
+    <div class="w-100 p-3 w-100" style="display: block">
+        <div class="navbar-nav mr-auto flex-row gap-5 align-items-center justify-content-between" style="display: flex;">
+            <div class="nav-item text-white d-flex align-items-center gap-3" style="cursor: pointer">
+                <div>
+                    <span>@Model.Members.Count</span>
+                    <i class="fa-regular fa-user"></i>
+                </div>
+                 <div>
+                    @Model.Name
+                </div>
+            </div>
+            <ul class="gap-4 m-0" style="display: flex;">
+                <li class="nav-item text-white flex-column align-items-center" style="cursor: pointer; display: flex;">
+                    <div> @(Model.MaxSize - @Model.GetRemainingSize()) / @Model.MaxSize <span class="subtitle" style="letter-spacing: 0px; font-size: 0.7em; margin: 0 0 0 0.5em">MB</span></div>
+                    <div class="subtitle" style="font-size: 0.7em; letter-spacing: 1px">Максимальный объем</div>
+                </li>
+                <li class="nav-item text-white flex-column align-items-center" style="cursor: pointer; display: flex;">
+                    <div>@((Model.GetExpiresAt() - DateTime.Now).ToString(@"hh\:mm\:ss"))</div>
+                    <div class="subtitle" style="font-size: 0.7em; letter-spacing: 1px">Оставшееся время</div>
+                </li>
+                <li class="nav-item text-white flex-column align-items-center justify-content-center" style="cursor: pointer; display: flex">
+                    <i class="fa-solid fa-share btn btn-dark fs-5"></i>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="p-4">
+    @foreach (var file in Model.Files)
+    {
+        
+    }
+</div>

@@ -2,13 +2,15 @@
 
 @{
     ViewData["Title"] = "Log in";
+
+    ViewData["SubTile"] = "Регистрация";
+
+    Layout = "_AuthLayout";
 }
 <div class="row align-items-center justify-content-center w-100 h-100">
     <div class="col-6">
         <section>
             <form method="post" asp-controller="Auth" asp-action="Register" asp-route-ReturnUrl="@Model.ReturnUrl">
-                <h2>Регистрация</h2>
-                <hr />
                 <div class="form-floating mb-3">
                     <input asp-for="Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
                     <label asp-for="Email" class="form-label"></label>
@@ -30,8 +32,11 @@
                 </div>
             </form>
         </section>
-        <div asp-validation-summary="All" style="margin: 10px 0 0 0;" class="text-danger validation-div" role="alert"></div>
-        <a asp-action="Login" asp-controller="Auth" asp-route-ReturnUrl="@Model.ReturnUrl">Перейти к логину</a>
+        <div asp-validation-summary="All" class="text-danger text-center validation-div m-3" role="alert"></div>
+        <div class="text-center">
+            <a asp-action="Login" asp-controller="Auth" asp-route-ReturnUrl="@Model.ReturnUrl">Перейти к логину</a>
+        </div>
+        
     </div>
 </div>
 

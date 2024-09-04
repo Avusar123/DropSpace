@@ -8,11 +8,7 @@
 
         private List<FileModel> _files = new();
 
-        public List<FileModel> Files
-        {
-            get { return new List<FileModel>(_files); }
-            private set { _files = value; }
-        }
+        public IEnumerable<FileModel> Files => _files; 
 
 
         public int MaxSize { get; set; }

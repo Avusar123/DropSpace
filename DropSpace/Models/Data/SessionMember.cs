@@ -8,12 +8,6 @@
 
         public Guid SessionId { get; set; }
 
-        public MemberStatus Status { get; set; }
-    }
-
-    public enum MemberStatus
-    {
-        Owner = 2, 
-        OrdinaryUser = 1,
+        public Session Session { get; set; }
     }
 }
