@@ -48,7 +48,10 @@ namespace DropSpace.Manager
 
         public async Task<Session> GetAsync(Guid key)
         {
-            return (await applicationContext.FindAsync<Session>(key))!;
+            return (await applicationContext
+                .Sessions
+                .Include(session => session.Files)
+                .FirstOrDefaultAsync(s => s.Id == key))!;
         }
 
         public List<Session> GetAllSessions(string userId)

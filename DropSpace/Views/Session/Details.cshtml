@@ -31,9 +31,25 @@
     </div>
 </nav>
 
-<div class="p-4">
+<div class="p-4 d-flex gap-3 flex-wrap container-fluid file-container">
     @foreach (var file in Model.Files)
     {
-        
+        <div class="file btn-dark btn d-flex flex-column align-items-center justify-content-center p-2" fileId="@file.Id" style="border-radius: 15px; min-width: 150px; min-height: 200px">
+            <div class="d-flex w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
+                <p>@file.Size <span class="subtitle" style="font-size: 0.7em; letter-spacing: 1px">МБ</span></p>
+            </div>
+            <div class="d-flex flex-column w-100 align-items-center justify-content-center" style="flex: 0 0 33%"><i class="fa-regular fa-file" style="font-size: 6em"></i></div>
+            <div class="d-flex w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
+                @file.FileName
+            </div>
+        </div>
     }
+
+    <div class="file btn-outline-dark btn d-flex flex-column align-items-center justify-content-center p-2" style="border-radius: 15px; border-style: dashed; border-width: 5px; min-width: 150px; min-height: 200px">
+        <div class="d-flex w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
+        </div>
+        <div class="d-flex flex-column w-100 align-items-center justify-content-center" style="flex: 0 0 33%"><i class="fa-regular fa-plus" style="font-size: 6em"></i></div>
+        <div class="d-flex w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
+        </div>
+    </div>
 </div>
