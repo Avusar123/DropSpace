@@ -42,9 +42,9 @@
                         </ul>
                         <div>
                             <hr />
-                            <form method="post" asp-action="Create" asp-controller="Session">
-                                <button type="submit" class="btn btn-dark w-100">Добавить сессию</button>
-                            </form>
+                            <button type="button" class="btn btn-dark w-100" data-bs-toggle="modal" data-bs-target="#createSessionModal">
+                                Добавить сессию
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -55,9 +55,31 @@
     <div class="flex-grow-1 @ViewData["ContainerClasses"]">
         @RenderBody()
     </div>
+    <div class="modal fade text-white" id="createSessionModal" data-bs-theme="dark" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLongTitle">Создать сессию</h5>
+                </div>
+                <form method="post" asp-action="Create" asp-controller="Session">
+                    <div class="modal-body">
+                        <div class="form-floating">
+                            <input name="Name" class="form-control" autocomplete="current-password" aria-required="true" placeholder="Название" value="Новая Сессия" required maxlength="30"/>
+                            <label class="form-label">Название</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn btn-outline-primary">Создать</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js"></script>
+    <partial name="_ValidationScriptsPartial" />
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

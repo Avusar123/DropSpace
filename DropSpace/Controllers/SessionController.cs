@@ -1,4 +1,5 @@
 ﻿using DropSpace.Manager;
+using DropSpace.Models;
 using DropSpace.Models.Data;
 using DropSpace.Requirements;
 using Microsoft.AspNetCore.Authorization;
@@ -67,9 +68,14 @@ namespace DropSpace.Controllers
         
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<ActionResult> Create()
+        public async Task<ActionResult> Create(CreateSessionViewModel createSessionModel)
         {
-            var member = await sessionManager.CreateDefaultNew(User);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var member = await sessionManager.CreateDefaultNew(User, createSessionModel.Name);
 
             return RedirectToAction("Details", new { id = member.SessionId });
         }

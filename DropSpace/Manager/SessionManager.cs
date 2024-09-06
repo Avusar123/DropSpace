@@ -4,10 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 namespace DropSpace.Manager
 {
-    public class SessionManager(ApplicationContext applicationContext, 
-        IConfiguration configuration, 
-        RoleManager<UserPlanRole> roleManager,
-        UserManager<IdentityUser> userManager) : IManager<Session, Guid>
+    public class SessionManager(ApplicationContext applicationContext,
+        RoleManager<UserPlanRole> roleManager) : IManager<Session, Guid>
     {
 
         public async Task<Guid> CreateAsync(Session entity)
@@ -22,21 +20,11 @@ namespace DropSpace.Manager
             return entity.Id;
         }
 
-        public async Task<SessionMember> CreateDefaultNew(IdentityUser user)
-        {
-            var roles = await userManager.GetRolesAsync(user);
-
-            var userPlan = await roleManager.FindByNameAsync(roles.First());
-
-            return await AddSession(user.Id, userPlan);
-        }
-
-
-        public async Task<SessionMember> CreateDefaultNew(ClaimsPrincipal claimsPrincipal)
+        public async Task<SessionMember> CreateDefaultNew(ClaimsPrincipal claimsPrincipal, string sessionName)
         {
             var userPlan = await roleManager.FindByNameAsync(claimsPrincipal.FindFirstValue(ClaimTypes.Role)!);
 
-            return await AddSession(claimsPrincipal.FindFirst(ClaimTypes.NameIdentifier)!.Value, userPlan!);
+            return await AddSession(claimsPrincipal.FindFirst(ClaimTypes.NameIdentifier)!.Value, userPlan!, sessionName);
         }
 
         public async Task Delete(Guid key)
@@ -76,14 +64,14 @@ namespace DropSpace.Manager
             await applicationContext.SaveChangesAsync();
         }
 
-        private async Task<SessionMember> AddSession(string userId, UserPlanRole userPlan)
+        private async Task<SessionMember> AddSession(string userId, UserPlanRole userPlan, string sessionName)
         {
             var session = new Session
             {
                 Created = DateTime.Now,
                 Duration = TimeSpan.FromSeconds(userPlan!.SessionDuration),
                 MaxSize = userPlan!.MaxSize,
-                Name = configuration.GetValue<string>("SessionDefaultName")!
+                Name = sessionName
             };
 
             var member = new SessionMember()
