@@ -1,6 +1,5 @@
-﻿
-using DropSpace.Manager;
-using DropSpace.Models.Data;
+﻿using DropSpace.Models.Data;
+using DropSpace.Services;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 
@@ -17,7 +16,7 @@ namespace DropSpace
 
             var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<UserPlanRole>>();
 
-            var sessionManager = scope.ServiceProvider.GetRequiredService<SessionManager>();
+            var sessionManager = scope.ServiceProvider.GetRequiredService<SessionService>();
 
 
             if (!roleManager.Roles.Any())

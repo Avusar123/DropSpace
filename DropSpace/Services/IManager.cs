@@ -1,4 +1,4 @@
-﻿namespace DropSpace.Manager
+﻿namespace DropSpace.Services
 {
     public interface IManager<TEntity, TKey>
     {

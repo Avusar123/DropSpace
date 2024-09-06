@@ -1,7 +1,7 @@
-﻿using DropSpace.Manager;
-using DropSpace.Models;
+﻿using DropSpace.Models;
 using DropSpace.Models.Data;
 using DropSpace.Requirements;
+using DropSpace.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -11,7 +11,7 @@ namespace DropSpace.Controllers
 {
     [Route("Session")]
     [Authorize]
-    public class SessionController(SessionManager sessionManager, IAuthorizationService authorizationService) : Controller
+    public class SessionController(SessionService sessionManager, IAuthorizationService authorizationService) : Controller
     {
 
         [HttpGet("{id}")]

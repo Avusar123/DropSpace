@@ -1,8 +1,8 @@
 using DropSpace;
 using DropSpace.DataManagers;
-using DropSpace.Manager;
 using DropSpace.Models.Data;
 using DropSpace.Requirements;
+using DropSpace.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -22,7 +22,7 @@ builder.Services.AddSingleton<ClaimsFactory>();
 
 builder.Services.AddHostedService<DataSeed>();
 
-builder.Services.AddScoped<SessionManager>();
+builder.Services.AddScoped<SessionService>();
 
 builder.Services.AddDbContext<ApplicationContext>(options => options.UseInMemoryDatabase("InMemory"));
 
