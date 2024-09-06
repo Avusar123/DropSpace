@@ -32,11 +32,11 @@
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Закрыть"></button>
                     </div>
                     <div class="offcanvas-body d-flex flex-column">
-                        <ul class="navbar-nav flex-grow-1 pe-3">
+                        <ul class="navbar-nav flex-grow-1 pe-3 d-flex flex-column gap-2">
                             @foreach (Session item in (List<Session>)SessionManager.GetAllSessions(User.FindFirstValue(ClaimTypes.NameIdentifier)!))
                             {
-                                <li class="nav-item d-flex">
-                                    <a class="btn btn-dark" asp-controller="Session" asp-action="Details" asp-route-id="@item.Id">@item.Name</a>
+                                <li class="nav-item">
+                                    <a class="btn btn-dark w-100" style="text-align: left;" asp-controller="Session" asp-action="Details" asp-route-id="@item.Id">@item.Name</a>
                                 </li>
                             }
                         </ul>
@@ -55,15 +55,9 @@
     <div class="flex-grow-1 @ViewData["ContainerClasses"]">
         @RenderBody()
     </div>
-
-    <footer class="border-top footer text-muted flex-grow-0">
-        <div class="container">
-            &copy; 2024 - DropSpace - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
-    </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/site.js"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

@@ -62,7 +62,30 @@ namespace DropSpace
 
                 await userManager.AddToRoleAsync(user, "PermanentUser");
 
-                await sessionManager.CreateDefaultNew(user);
+
+                var session = new Session()
+                {
+                    Id = Guid.NewGuid(),
+                    Created = DateTime.Now,
+                    Duration = TimeSpan.FromMinutes(1), 
+                    MaxSize = 1000,
+                    Members = new List<SessionMember>()
+                    {
+                        new() { UserId = user.Id }
+                    },
+                    Name = "Test"
+                };
+
+
+                for (int i = 0; i < 20; i++)
+                {
+                    session.AttachFileToSession
+                    (
+                        new FileModel() { Id = Guid.NewGuid(), FileName = "Test.exe", FilePath = "~/Test", Size = 10 }
+                    );
+                }
+                
+                await sessionManager.CreateAsync(session);
 
             }
         }

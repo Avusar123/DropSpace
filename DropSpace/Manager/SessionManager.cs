@@ -41,14 +41,25 @@ namespace DropSpace.Manager
 
         public async Task Delete(Guid key)
         {
-            applicationContext.Remove(key);
+            var session = applicationContext.Sessions.FirstOrDefault(s => s.Id == key);
+
+            if (session == null)
+            {
+                return;
+            }
+
+            applicationContext.Sessions.Remove(session);
 
             await applicationContext.SaveChangesAsync();
         }
 
         public async Task<Session> GetAsync(Guid key)
         {
-            return (await applicationContext.FindAsync<Session>(key))!;
+            return (await applicationContext
+                .Sessions
+                .Include(session => session.Files)
+                .Include(session => session.Members)
+                .FirstOrDefaultAsync(s => s.Id == key))!;
         }
 
         public List<Session> GetAllSessions(string userId)

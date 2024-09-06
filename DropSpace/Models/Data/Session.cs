@@ -10,7 +10,6 @@
 
         public IEnumerable<FileModel> Files => _files; 
 
-
         public int MaxSize { get; set; }
 
         public DateTime Created { get; set; }
