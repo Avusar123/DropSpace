@@ -80,21 +80,6 @@ namespace DropSpace.Controllers
             return RedirectToAction("Details", new { id = member.SessionId });
         }
 
-        // POST: SessionController/Edit/5
-        [HttpPost("Edit/{id}")]
-        [ValidateAntiForgeryToken]
-        public ActionResult Edit(Guid id)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
-
         [HttpDelete("{id}")]
         public async Task<ActionResult> Leave(Guid id)
         {
