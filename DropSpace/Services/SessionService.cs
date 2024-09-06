@@ -2,9 +2,9 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-namespace DropSpace.Manager
+namespace DropSpace.Services
 {
-    public class SessionManager(ApplicationContext applicationContext,
+    public class SessionService(ApplicationContext applicationContext,
         RoleManager<UserPlanRole> roleManager) : IManager<Session, Guid>
     {
 
@@ -54,7 +54,7 @@ namespace DropSpace.Manager
         {
             var sessions = applicationContext.Sessions.Include(session => session.Members);
 
-            return [..sessions.Where(session => session.Members.Any(member => member.UserId == userId) && session.Created + session.Duration > DateTime.Now)];
+            return [.. sessions.Where(session => session.Members.Any(member => member.UserId == userId) && session.Created + session.Duration > DateTime.Now)];
         }
 
         public async Task Update(Session entity)
