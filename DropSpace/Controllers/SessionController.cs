@@ -4,6 +4,7 @@ using DropSpace.Requirements;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace DropSpace.Controllers
 {
@@ -19,16 +20,29 @@ namespace DropSpace.Controllers
             {
                 var session = await sessionManager.GetAsync(id);
 
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                if (userId == null)
+                {
+                    return Forbid();
+                }
+
                 if (session.GetExpiresAt() < DateTime.Now)
                 {
-                    return NotFound();
+                    return Redirect("/");
                 }
 
                 var result = await authorizationService.AuthorizeAsync(User, session, new MemberRequirement());
 
                 if (!result.Succeeded)
                 {
-                    return Forbid();
+                    session.Members.Add(new SessionMember()
+                    {
+                        SessionId = session.Id,
+                        UserId = userId
+                    });
+
+                    await sessionManager.Update(session);
                 }
 
                 return View(session);
@@ -39,6 +53,18 @@ namespace DropSpace.Controllers
             }
         }
 
+        [HttpGet("GetAll")]
+        public ActionResult GetAllSessions()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (userId == null)
+                return Forbid();
+
+            return Json(sessionManager.GetAllSessions(userId)
+                .Select(session => new { session.Id, session.Name }));
+        }
+        
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> Create()
@@ -63,23 +89,34 @@ namespace DropSpace.Controllers
             }
         }
 
-        [HttpGet("Join/{id}")]
-        public ActionResult Join(Guid id)
-        {
-            throw new NotSupportedException();
-        }
-
-        [HttpPost("Join/{id}")]
-        [ValidateAntiForgeryToken]
-        public ActionResult Join(Guid id, [FromForm]  bool agree)
-        {
-            throw new NotSupportedException();
-        }
-
         [HttpDelete("{id}")]
-        public ActionResult Leave(Guid id)
+        public async Task<ActionResult> Leave(Guid id)
         {
-            throw new NotSupportedException();
+            try
+            {
+                var session = await sessionManager.GetAsync(id);
+
+                var member = session.Members
+                    .FirstOrDefault(member => member.UserId == User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+                if (member != null)
+                    session.Members.Remove(member);
+
+                if (session.Members.Count == 0)
+                {
+                    await sessionManager.Delete(id);
+                } else
+                {
+                    await sessionManager.Update(session);
+                }
+
+                return Redirect("/");
+
+            }
+            catch (NullReferenceException)
+            {
+                return NotFound();
+            }
         }
     }
 }

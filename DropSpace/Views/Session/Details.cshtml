@@ -4,8 +4,8 @@
 @model DropSpace.Models.Data.Session
 <nav class="navbar navbar-dark bg-dark">
     <div class="w-100 p-3 w-100" style="display: block">
-        <div class="navbar-nav mr-auto flex-row gap-5 align-items-center justify-content-between" style="display: flex;">
-            <div class="nav-item text-white d-flex align-items-center gap-3" style="cursor: pointer">
+        <div class="navbar-nav mr-auto flex-row align-items-center justify-content-between" style="display: flex;">
+            <div class="nav-item text-white d-flex align-items-center gap-3" style="cursor: default">
                 <div>
                     <span>@Model.Members.Count</span>
                     <i class="fa-regular fa-user"></i>
@@ -15,16 +15,17 @@
                 </div>
             </div>
             <ul class="gap-4 m-0" style="display: flex;">
-                <li class="nav-item text-white flex-column align-items-center" style="cursor: pointer; display: flex;">
+                <li class="nav-item text-white flex-column align-items-center" style="cursor: default; display: flex;">
                     <div> @(Model.MaxSize - @Model.GetRemainingSize()) / @Model.MaxSize <span class="subtitle" style="letter-spacing: 0px; font-size: 0.7em; margin: 0 0 0 0.5em">MB</span></div>
                     <div class="subtitle" style="font-size: 0.7em; letter-spacing: 1px">Максимальный объем</div>
                 </li>
-                <li class="nav-item text-white flex-column align-items-center" style="cursor: pointer; display: flex;">
-                    <div>@((Model.GetExpiresAt() - DateTime.Now).ToString(@"hh\:mm\:ss"))</div>
+                <li class="nav-item text-white flex-column align-items-center" style="cursor: default; display: flex;">
+                    <div id="time-counter">@((Model.GetExpiresAt() - DateTime.Now).ToString(@"hh\:mm\:ss"))</div>
                     <div class="subtitle" style="font-size: 0.7em; letter-spacing: 1px">Оставшееся время</div>
                 </li>
-                <li class="nav-item text-white flex-column align-items-center justify-content-center" style="cursor: pointer; display: flex">
-                    <i class="fa-solid fa-share btn btn-dark fs-5"></i>
+                <li class="nav-item align-items-center justify-content-center" style="cursor: pointer; display: flex">
+                    <i class="fa-solid fa-share btn btn-dark fs-6"></i>
+                    <i class="fa-solid fa-right-from-bracket btn btn-dark fs-6" id="leave-button"></i>
                 </li>
             </ul>
         </div>
@@ -45,7 +46,7 @@
         </div>
     }
 
-    <div class="file btn-outline-dark btn d-flex flex-column align-items-center justify-content-center p-2" style="border-radius: 15px; border-style: dashed; border-width: 5px; min-width: 150px; min-height: 200px">
+    <div class="add-file-button file btn-outline-dark btn d-flex flex-column align-items-center justify-content-center p-2" style="border-radius: 15px; border-style: dashed; border-width: 5px; min-width: 150px; min-height: 200px">
         <div class="d-flex w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
         </div>
         <div class="d-flex flex-column w-100 align-items-center justify-content-center" style="flex: 0 0 33%"><i class="fa-regular fa-plus" style="font-size: 6em"></i></div>
@@ -53,3 +54,14 @@
         </div>
     </div>
 </div>
+
+<div class="collapse" id="navbarToggleExternalContent">
+    <div class="bg-dark p-4">
+        <h5 class="text-white h4" id="files-counter"></h5>
+        <span class="text-muted">Toggleable via the navbar brand.</span>
+    </div>
+</div>
+<nav class="navbar navbar-dark bg-dark p-0">
+    <div class="container-fluid">
+    </div>
+</nav>
