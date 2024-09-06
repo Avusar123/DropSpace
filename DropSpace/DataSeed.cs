@@ -66,7 +66,7 @@ namespace DropSpace
                 {
                     Id = Guid.NewGuid(),
                     Created = DateTime.Now,
-                    Duration = TimeSpan.FromMinutes(1), 
+                    Duration = TimeSpan.FromMinutes(9999), 
                     MaxSize = 1000,
                     Members = new List<SessionMember>()
                     {

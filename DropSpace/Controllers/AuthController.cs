@@ -1,5 +1,4 @@
 ﻿using DropSpace.DataManagers;
-using DropSpace.Manager;
 using DropSpace.Models;
 using DropSpace.Models.Data;
 using Microsoft.AspNetCore.Authentication;

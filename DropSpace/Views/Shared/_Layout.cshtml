@@ -1,7 +1,7 @@
-﻿@    using DropSpace.Manager
-@    using DropSpace.Models.Data
-@    using System.Security.Claims
-@inject SessionService SessionManager
+﻿@using DropSpace.Models.Data
+@using System.Security.Claims
+@using DropSpace.Services
+@inject SessionService SessionService
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -33,7 +33,7 @@
                     </div>
                     <div class="offcanvas-body d-flex flex-column">
                         <ul class="navbar-nav flex-grow-1 pe-3 d-flex flex-column gap-2">
-                            @foreach (Session item in (List<Session>)SessionManager.GetAllSessions(User.FindFirstValue(ClaimTypes.NameIdentifier)!))
+                            @foreach (Session item in (List<Session>)SessionService.GetAllSessions(User.FindFirstValue(ClaimTypes.NameIdentifier)!))
                             {
                                 <li class="nav-item">
                                     <a class="btn btn-dark w-100" style="text-align: left;" asp-controller="Session" asp-action="Details" asp-route-id="@item.Id">@item.Name</a>

@@ -11,7 +11,7 @@ namespace DropSpace.Controllers
 {
     [Route("Session")]
     [Authorize]
-    public class SessionController(SessionService sessionManager, IAuthorizationService authorizationService) : Controller
+    public class SessionController(SessionService sessionService, IAuthorizationService authorizationService) : Controller
     {
 
         [HttpGet("{id}")]
@@ -19,7 +19,7 @@ namespace DropSpace.Controllers
         {
             try
             {
-                var session = await sessionManager.GetAsync(id);
+                var session = await sessionService.GetAsync(id);
 
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -43,7 +43,7 @@ namespace DropSpace.Controllers
                         UserId = userId
                     });
 
-                    await sessionManager.Update(session);
+                    await sessionService.Update(session);
                 }
 
                 return View(session);
@@ -62,7 +62,7 @@ namespace DropSpace.Controllers
             if (userId == null)
                 return Forbid();
 
-            return Json(sessionManager.GetAllSessions(userId)
+            return Json(sessionService.GetAllSessions(userId)
                 .Select(session => new { session.Id, session.Name }));
         }
         
@@ -75,7 +75,7 @@ namespace DropSpace.Controllers
                 return BadRequest(ModelState);
             }
 
-            var member = await sessionManager.CreateDefaultNew(User, createSessionModel.Name);
+            var member = await sessionService.CreateDefaultNew(User, createSessionModel.Name);
 
             return RedirectToAction("Details", new { id = member.SessionId });
         }
@@ -85,7 +85,7 @@ namespace DropSpace.Controllers
         {
             try
             {
-                var session = await sessionManager.GetAsync(id);
+                var session = await sessionService.GetAsync(id);
 
                 var member = session.Members
                     .FirstOrDefault(member => member.UserId == User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
@@ -95,10 +95,10 @@ namespace DropSpace.Controllers
 
                 if (session.Members.Count == 0)
                 {
-                    await sessionManager.Delete(id);
+                    await sessionService.Delete(id);
                 } else
                 {
-                    await sessionManager.Update(session);
+                    await sessionService.Update(session);
                 }
 
                 return Redirect("/");
