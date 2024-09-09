@@ -20,11 +20,11 @@
                     <div class="subtitle" style="font-size: 0.7em; letter-spacing: 1px">Максимальный объем</div>
                 </li>
                 <li class="nav-item text-white flex-column align-items-center" style="cursor: default; display: flex;">
-                    <div id="time-counter">@((Model.GetExpiresAt() - DateTime.Now).ToString(@"hh\:mm\:ss"))</div>
+                    <div id="time-counter">@((Model.Created + Model.Duration - DateTime.Now).ToString(@"hh\:mm\:ss"))</div>
                     <div class="subtitle" style="font-size: 0.7em; letter-spacing: 1px">Оставшееся время</div>
                 </li>
                 <li class="nav-item align-items-center justify-content-center" style="cursor: pointer; display: flex">
-                    <i class="fa-solid fa-share btn btn-dark fs-6"></i>
+                    <i class="fa-solid fa-share btn btn-dark fs-6" id="share-button" data-bs-toggle="modal" data-bs-target="#shareModal"></i>
                     <i class="fa-solid fa-right-from-bracket btn btn-dark fs-6" id="leave-button"></i>
                 </li>
             </ul>
@@ -54,14 +54,29 @@
         </div>
     </div>
 </div>
-
-<div class="collapse" id="navbarToggleExternalContent">
-    <div class="bg-dark p-4">
-        <h5 class="text-white h4" id="files-counter"></h5>
-        <span class="text-muted">Toggleable via the navbar brand.</span>
+<div class="modal fade text-white" data-bs-theme="dark" id="shareModal" tabindex="-1" role="dialog" aria-labelledby="shareModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header fs-3">
+                <h5 class="modal-title" id="shareModalTitle">Пригласить участника</h5>
+            </div>
+            <div class="modal-body">
+                <div id="qrcode"></div>
+                <div id="or" class="text-center my-3"><span>ИЛИ</span></div>
+                <div class="code-input-container my-3" data-button="addUser">
+                    <input class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
+                    <input class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
+                    <input class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
+                    <input class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
+                    <input class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
+                    <input class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
+                </div>
+                <p class="my-3 text-center subtitle" style="letter-spacing: normal">Чтобы войти с другого устройства отсканируйте QR-код или введите комбинацию символов, указанную на главной странице приглашаемого устройства.</p>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button id="addUser" type="button" class="btn btn-outline-primary" disabled>Отправить</button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
-<nav class="navbar navbar-dark bg-dark p-0">
-    <div class="container-fluid">
-    </div>
-</nav>

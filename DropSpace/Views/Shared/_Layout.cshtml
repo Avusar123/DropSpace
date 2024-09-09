@@ -32,14 +32,9 @@
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Закрыть"></button>
                     </div>
                     <div class="offcanvas-body d-flex flex-column">
-                        <ul class="navbar-nav flex-grow-1 pe-3 d-flex flex-column gap-2">
-                            @foreach (Session item in (List<Session>)SessionService.GetAllSessions(User.FindFirstValue(ClaimTypes.NameIdentifier)!))
-                            {
-                                <li class="nav-item">
-                                    <a class="btn btn-dark w-100" style="text-align: left;" asp-controller="Session" asp-action="Details" asp-route-id="@item.Id">@item.Name</a>
-                                </li>
-                            }
+                        <ul id="sessionsContainer" class="navbar-nav flex-grow-1 pe-3 d-flex flex-column gap-2">
                         </ul>
+                        <span class="subtitle w-100" style="font-size: 1.5em; letter-spacing: 1px; flex: 0 1 auto; text-align: right"><span id="sessionsCounter">0</span> / @User.FindFirstValue("maxSessions")</span>
                         <div>
                             <hr />
                             <button type="button" class="btn btn-dark w-100" data-bs-toggle="modal" data-bs-target="#createSessionModal">
@@ -61,23 +56,36 @@
                 <div class="modal-header">
                     <h5 class="modal-title" id="exampleModalLongTitle">Создать сессию</h5>
                 </div>
-                <form method="post" asp-action="Create" asp-controller="Session">
+                <form id="createSessionForm" method="post" asp-action="Create" asp-controller="Session">
                     <div class="modal-body">
                         <div class="form-floating">
-                            <input name="Name" class="form-control" autocomplete="current-password" aria-required="true" placeholder="Название" value="Новая Сессия" required maxlength="30"/>
+                            <input id="createSessionName" name="Name" class="form-control" autocomplete="current-password" aria-required="true" placeholder="Название" value="Новая Сессия" required maxlength="30"/>
                             <label class="form-label">Название</label>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
-                        <button type="submit" class="btn btn-outline-primary">Создать</button>
+                        <button id="createSessionButton" type="submit" class="btn btn-outline-primary">Создать</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 99999">
+        <div id="error-toast" class="toast align-items-center text-white bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div id="error-toast-body" class="toast-body">
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@latest/dist/browser/signalr.min.js"></script>
+    <script>
+    </script>
     <script src="~/js/site.js"></script>
     <partial name="_ValidationScriptsPartial" />
     @await RenderSectionAsync("Scripts", required: false)

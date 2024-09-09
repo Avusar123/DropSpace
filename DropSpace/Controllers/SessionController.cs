@@ -1,9 +1,9 @@
 ﻿using DropSpace.Models;
 using DropSpace.Models.Data;
+using DropSpace.Models.DTOs;
 using DropSpace.Requirements;
 using DropSpace.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
@@ -28,7 +28,7 @@ namespace DropSpace.Controllers
                     return Forbid();
                 }
 
-                if (session.GetExpiresAt() < DateTime.Now)
+                if (session.Created + session.Duration < DateTime.Now)
                 {
                     return Redirect("/");
                 }
@@ -53,18 +53,6 @@ namespace DropSpace.Controllers
                 return NotFound();
             }
         }
-
-        [HttpGet("GetAll")]
-        public ActionResult GetAllSessions()
-        {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            if (userId == null)
-                return Forbid();
-
-            return Json(sessionService.GetAllSessions(userId)
-                .Select(session => new { session.Id, session.Name }));
-        }
         
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -74,10 +62,18 @@ namespace DropSpace.Controllers
             {
                 return BadRequest(ModelState);
             }
+            
+            try
+            {
+                var member = await sessionService.CreateDefaultNew(User, createSessionModel.Name);
 
-            var member = await sessionService.CreateDefaultNew(User, createSessionModel.Name);
+                return Json(new SessionDto(member.SessionId, createSessionModel.Name));
+            } catch (Exception er)
+            {
+                ModelState.AddModelError(string.Empty, er.Message);
 
-            return RedirectToAction("Details", new { id = member.SessionId });
+                return BadRequest(ModelState);
+            }
         }
 
         [HttpDelete("{id}")]

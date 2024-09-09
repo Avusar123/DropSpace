@@ -1,11 +1,18 @@
 ﻿using DropSpace.Models.Data;
+using DropSpace.Models.DTOs;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Authentication;
 using System.Security.Claims;
 namespace DropSpace.Services
 {
+    public class MaxSessionsLimitReached(int limit) 
+        : Exception(string.Format("Лимит в {0} сессий превышен!", limit))
+    {
+    }
+
     public class SessionService(ApplicationContext applicationContext,
-        RoleManager<UserPlanRole> roleManager) : IManager<Session, Guid>
+        RoleManager<UserPlanRole> roleManager) : IService<Session, Guid>
     {
 
         public async Task<Guid> CreateAsync(Session entity)
@@ -22,7 +29,24 @@ namespace DropSpace.Services
 
         public async Task<SessionMember> CreateDefaultNew(ClaimsPrincipal claimsPrincipal, string sessionName)
         {
-            var userPlan = await roleManager.FindByNameAsync(claimsPrincipal.FindFirstValue(ClaimTypes.Role)!);
+            var roleid = claimsPrincipal.FindFirstValue(ClaimTypes.Role)
+                ?? throw new AuthenticationException("Id роли не найден!");
+
+            var userId = claimsPrincipal.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? throw new AuthenticationException("Id пользователя не найден!");
+
+            var userPlan = await roleManager.FindByNameAsync(roleid)
+                ?? throw new AuthenticationException("Роль не найдена!");
+
+            if (userPlan.MaxSessions <= applicationContext
+                .Sessions
+                .Include(s => s.Members)
+                .Where(session => session.Created + session.Duration > DateTime.Now
+                    && session.Members.Any(m => m.UserId == userId))
+                .Count())
+            {
+                throw new MaxSessionsLimitReached(userPlan.MaxSessions); 
+            }
 
             return await AddSession(claimsPrincipal.FindFirst(ClaimTypes.NameIdentifier)!.Value, userPlan!, sessionName);
         }
@@ -47,14 +71,23 @@ namespace DropSpace.Services
                 .Sessions
                 .Include(session => session.Files)
                 .Include(session => session.Members)
-                .FirstOrDefaultAsync(s => s.Id == key))!;
+                .Where(session => session.Created + session.Duration > DateTime.Now)
+                .FirstOrDefaultAsync(s => s.Id == key)) ?? throw new NullReferenceException("Сессия не найдена!");
         }
 
-        public List<Session> GetAllSessions(string userId)
+        public List<SessionDto> GetAllSessions(string userId)
         {
             var sessions = applicationContext.Sessions.Include(session => session.Members);
 
-            return [.. sessions.Where(session => session.Members.Any(member => member.UserId == userId) && session.Created + session.Duration > DateTime.Now)];
+            return [.. sessions
+                .Where(session => 
+                    session
+                        .Members
+                        .Any(member => member.UserId == userId) 
+                            && session.Created + session.Duration > DateTime.Now)
+                .Select(
+                    s => new SessionDto(s.Id, s.Name)
+                )];
         }
 
         public async Task Update(Session entity)

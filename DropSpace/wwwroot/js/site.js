@@ -1,14 +1,48 @@
 ﻿var toggledButtons = [];
 
-var filesoffcanvas = document.getElementById("navbarToggleExternalContent");
+const filesoffcanvas = document.getElementById("navbarToggleExternalContent");
 
-var filesCounter = document.getElementById("files-counter")
+const filesCounter = document.getElementById("files-counter")
 
-var leaveButton = document.getElementById("leave-button")
+const leaveButton = document.getElementById("leave-button")
 
-var timeCounter = document.getElementById("time-counter")
+const timeCounter = document.getElementById("time-counter")
+
+const sessionsContainer = document.getElementById("sessionsContainer");
+
+const sessionsCounter = document.getElementById("sessionsCounter");
+
+const errorToastEl = document.getElementById("error-toast");
+
+let errorToast;
+
+let qrcode;
+
+if (errorToastEl) {
+    errorToast = new bootstrap.Toast(errorToastEl);
+}
 
 let filesoffcanvasObj = 0;
+
+const connection = new signalR.HubConnectionBuilder()
+    .withUrl("/Session/Subscribe")
+    .build();
+
+connection.on("NewInvite", function (name, id) {
+    console.log(id)
+})
+
+connection.start().catch(function (err) {
+    return console.error(err.toString());
+}).then(() => {
+    updateSessions(connection);
+    refreshCode(connection);
+});
+
+async function refreshCode(connection) {
+    var code = await connection.invoke("RefreshCode") 
+    $("#invite-code").text(code);
+}
 
 if (timeCounter) {
     var currentTime = timeToSeconds(timeCounter.innerHTML);
@@ -24,15 +58,20 @@ if (timeCounter) {
 
     }, 1000);
 }
-    
+
+
 
 if (leaveButton)
 leaveButton.addEventListener("click", function () {
-    var request = new XMLHttpRequest();
+    const request = new XMLHttpRequest();
 
-    request.onreadystatechange = function () {
-        if (request.readyState == 4) {
+    request.onreadystatechange = function (event) {
+        if (request.status == 200 && request.readyState == 4) {
             window.location.replace("/")
+        }
+
+        if (request.status == 400) {
+            showError("Неизвестная ошибка!")
         }
     }
 
@@ -41,8 +80,74 @@ leaveButton.addEventListener("click", function () {
     request.send()
 });
 
-document.addEventListener('DOMContentLoaded', function () {
+const boxes = document.querySelectorAll('.code-input');
 
+function showError(text) {
+    $("#error-toast-body").text(text);
+    errorToast.show()
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const container = document.querySelector('.code-input-container');
+
+    if (container) {
+        const submitBtn = document.querySelector("#" + container.getAttribute("data-button"))
+
+        boxes.forEach((box, index) => {
+            box.addEventListener('input', () => {
+                if (box.value.length === box.maxLength && index < boxes.length - 1) {
+                    boxes[index + 1].focus();
+                }
+
+                toggleSubmitButton(submitBtn);
+            });
+
+            box.addEventListener('keydown', (event) => {
+                if (event.key === 'Backspace' && box.value === '' && index > 0) {
+                    boxes[index - 1].focus();
+                }
+
+                toggleSubmitButton(submitBtn);
+            });
+        });
+    }
+
+    $("#share-button").on("click", function (event) {
+
+        if (qrcode)
+            return;
+
+        var currentUrl = window.location.href;
+
+        // Генерируем QR-код
+        qrcode = new QRCode(document.getElementById("qrcode"), {
+            text: currentUrl,
+            width: 256, // Ширина QR-кода
+            height: 256 // Высота QR-кода
+        });
+    })
+
+    document.getElementById("createSessionButton").addEventListener("click", function (event) {
+        event.preventDefault();
+
+        const request = new XMLHttpRequest();
+
+        request.onreadystatechange = function () {
+            if (request.status == 200 && request.readyState == 4) {
+                window.location.href = "/Session/" + JSON.parse(request.response).id
+            }
+
+            if (request.status == 400 && request.readyState == 4) {
+                showError(Object.values(JSON.parse(request.response))[0]);
+            }
+        }
+
+        let formData = new FormData(document.getElementById("createSessionForm"));
+
+        request.open("post", "/Session");
+
+        request.send(formData);
+    })
 
     var files = document.querySelectorAll(".file");
 
@@ -99,4 +204,35 @@ function secondsToTime(seconds) {
     const minutes = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
     const secs = (seconds % 60).toString().padStart(2, '0');
     return `${hours}:${minutes}:${secs}`;
+}
+
+function toggleSubmitButton(submitBtn) {
+    const allFilled = Array.from(boxes).every(box => box.value.length === 1);
+    submitBtn.disabled = !allFilled;
+}
+
+async function updateSessions(connection) {
+
+    const sessions = await connection.invoke("GetSessions");
+
+    if (!sessionsContainer)
+        return;
+
+    if (sessionsCounter) {
+        sessionsCounter.innerHTML = sessions.length
+    }
+
+    sessionsContainer.innerHTML = "";
+
+    sessions.forEach((session) => {
+        const li = document.createElement("li");
+        const a = document.createElement("a");
+        a.className = "btn btn-dark w-100";
+        a.style = "text-align: left";
+        a.href = "/Session/" + session.id;
+        a.text = session.name;
+        li.appendChild(a);
+        li.className = "nav-item"
+        sessionsContainer.appendChild(li);
+    })
 }

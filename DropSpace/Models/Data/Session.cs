@@ -12,16 +12,11 @@
 
         public int MaxSize { get; set; }
 
-        public DateTime Created { get; set; }
+        public DateTime Created { get;set; }
 
         public TimeSpan Duration { get; set; }
 
         public List<SessionMember> Members { get; set; } = [];
-
-        public DateTime GetExpiresAt()
-        {
-            return Created + Duration;
-        }
 
         public void AttachFileToSession(FileModel file)
         {

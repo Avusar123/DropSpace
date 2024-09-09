@@ -16,7 +16,8 @@ namespace DropSpace.Controllers
     [Route("Auth")]
     public class AuthController(ClaimsFactory claimsFactory, 
         SignInManager<IdentityUser> signInManager, 
-        UserManager<IdentityUser> userManager) : Controller
+        UserManager<IdentityUser> userManager,
+        RoleManager<UserPlanRole> roleManager) : Controller
     {
         const string INVALIDLOGGINGATTEMPTMESSAGE = "Неудачная попытка входа";
 
@@ -25,7 +26,7 @@ namespace DropSpace.Controllers
         public async Task<IActionResult> OneTimeRegister(string? returnUrl)
         {
 
-            var identity = claimsFactory.CreateOneTimeIdentity(CookieAuthenticationDefaults.AuthenticationScheme);
+            var identity = await claimsFactory.CreateOneTimeIdentity(CookieAuthenticationDefaults.AuthenticationScheme);
 
             var principle = new ClaimsPrincipal(identity);
 
@@ -87,34 +88,15 @@ namespace DropSpace.Controllers
 
             var user = await userManager.FindByEmailAsync(model.Email);
 
-            if (user == null) 
+            if (user == null || !await userManager.CheckPasswordAsync(user, model.Password)) 
             {
                 ModelState.AddModelError(string.Empty, INVALIDLOGGINGATTEMPTMESSAGE);
 
-                return View(model);
+                return View();
             }
 
-            var result = await signInManager.PasswordSignInAsync(user!, model.Password, true, true);
-
-            if (!result.Succeeded)
-            {
-                if (result.IsNotAllowed) 
-                {
-                    ModelState.AddModelError(string.Empty, "Вход не разрешен");
-                }
-
-                if (result.IsLockedOut)
-                {
-                    ModelState.AddModelError(string.Empty, "Аккаут заблокирован! Попробуйте позже");
-
-                    return View(model);
-                    
-                }
-
-                ModelState.AddModelError(string.Empty, INVALIDLOGGINGATTEMPTMESSAGE);
-
-                return View(model);
-            }
+            await signInManager.SignInWithClaimsAsync(user, null,
+                (await claimsFactory.GenerateRoleAdditionalClaims("PermanentUser")));
 
             model.ReturnUrl = SetIfNullReturnUrl(model.ReturnUrl);
 

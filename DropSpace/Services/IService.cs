@@ -1,6 +1,6 @@
 ﻿namespace DropSpace.Services
 {
-    public interface IManager<TEntity, TKey>
+    public interface IService<TEntity, TKey>
     {
         public Task<TKey> CreateAsync(TEntity entity);
 

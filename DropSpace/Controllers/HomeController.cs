@@ -2,11 +2,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace DropSpace.Controllers
 {
-    [Authorize(Policy = "BaseAccess")]
-    public class HomeController(SessionService sessionManager) : Controller
+    [Authorize]
+    public class HomeController : Controller
     {
         public IActionResult Index()
         {
