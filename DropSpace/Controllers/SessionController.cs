@@ -11,7 +11,8 @@ namespace DropSpace.Controllers
 {
     [Route("Session")]
     [Authorize]
-    public class SessionController(SessionService sessionService, IAuthorizationService authorizationService) : Controller
+    public class SessionController(SessionService sessionService, 
+        IAuthorizationService authorizationService) : Controller
     {
 
         [HttpGet("{id}")]

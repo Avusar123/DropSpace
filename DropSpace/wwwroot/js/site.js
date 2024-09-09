@@ -18,30 +18,60 @@ let errorToast;
 
 let qrcode;
 
+let inviteToast;
+
+let successToast;
+
 if (errorToastEl) {
     errorToast = new bootstrap.Toast(errorToastEl);
 }
 
 let filesoffcanvasObj = 0;
 
+let code;
+
 const connection = new signalR.HubConnectionBuilder()
     .withUrl("/Session/Subscribe")
     .build();
 
 connection.on("NewInvite", function (name, id) {
-    console.log(id)
+    $("#invite-toast-content").text('Вас приглашают в сессию "' + name + '"');
+    $('#invite-toast-button').on("click", () => {
+        window.location.href = window.location.href + "Session/" + id
+        connection.invoke("SendEvent", id, "SessionUpdateRequired");
+    })
+    inviteToast.show();
+})
+
+connection.on("SessionUpdateRequired", function () {
+    var toast = new window.bootstrap.Toast($("#upate-toast"));
+    toast.show();
+})
+
+connection.on("ErrorRecieved", function (err) {
+    showError(err)
 })
 
 connection.start().catch(function (err) {
     return console.error(err.toString());
 }).then(() => {
     updateSessions(connection);
-    refreshCode(connection);
+    code = refreshCode(connection).then((result) => {
+        if (document.querySelector("#home-qr")) {
+            var currentUrl = window.location.href + "Session/Invite?code=" + result;
+            qrcode = new QRCode(document.querySelector("#home-qr"), {
+                text: currentUrl,
+                width: 256, // Ширина QR-кода
+                height: 256 // Высота QR-кода
+            });
+        }
+    });
 });
 
 async function refreshCode(connection) {
-    var code = await connection.invoke("RefreshCode") 
-    $("#invite-code").text(code);
+    var result = await connection.invoke("RefreshCode") 
+    $("#invite-code").text(result);
+    return result;
 }
 
 if (timeCounter) {
@@ -87,7 +117,31 @@ function showError(text) {
     errorToast.show()
 }
 
+const inviteUserButton = document.querySelector("#inviteUser");
+
+if (inviteUserButton)
+inviteUserButton.addEventListener("click", function (e) {
+    e.preventDefault();
+    const url = window.location.href;
+    const SessionId = url.split('/').pop();
+    connection.invoke("SendInviteByCode", collectCode(boxes), SessionId).then((res) => {
+        if (res) {
+            successToast.show();
+        }
+    })
+})
+
 document.addEventListener('DOMContentLoaded', function () {
+    var invtoast = document.querySelector("#invite-toast")
+
+    var succstoast = document.querySelector("#success-toast");
+
+    if (succstoast)
+        successToast = new window.bootstrap.Toast(succstoast)
+
+    if (invtoast)
+        inviteToast = new window.bootstrap.Toast(invtoast);
+
     const container = document.querySelector('.code-input-container');
 
     if (container) {
@@ -235,4 +289,17 @@ async function updateSessions(connection) {
         li.className = "nav-item"
         sessionsContainer.appendChild(li);
     })
+}
+
+function collectCode(boxes) {
+    // Получаем значения всех input-элементов
+    let code = '';
+
+    // Проходимся по каждому input и собираем значения
+    boxes.forEach(input => {
+        code += input.value;
+    });
+
+    // Выводим результат
+    return code;
 }

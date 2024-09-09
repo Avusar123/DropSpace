@@ -33,6 +33,8 @@ builder.Services.AddScoped<IAuthorizationHandler, MemberRequirementAuthorization
 
 builder.Services.AddSingleton<IInviteCodeProvider, InMemoryInviteCodeProvider>();
 
+builder.Services.AddSingleton<IConnectionIdProvider, InMemoryConnectionIdProvider>();
+
 builder.Services.AddIdentity<IdentityUser, UserPlanRole>(options =>
 {
     options.Lockout.AllowedForNewUsers = false;
