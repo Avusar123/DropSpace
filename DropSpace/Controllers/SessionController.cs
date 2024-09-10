@@ -5,6 +5,7 @@ using DropSpace.Requirements;
 using DropSpace.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Authentication;
 using System.Security.Claims;
 
 namespace DropSpace.Controllers
@@ -22,13 +23,6 @@ namespace DropSpace.Controllers
             {
                 var session = await sessionService.GetAsync(id);
 
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-                if (userId == null)
-                {
-                    return Forbid();
-                }
-
                 if (session.Created + session.Duration < DateTime.Now)
                 {
                     return Redirect("/");
@@ -38,13 +32,7 @@ namespace DropSpace.Controllers
 
                 if (!result.Succeeded)
                 {
-                    session.Members.Add(new SessionMember()
-                    {
-                        SessionId = session.Id,
-                        UserId = userId
-                    });
-
-                    await sessionService.Update(session);
+                    await sessionService.JoinSession(User, id);
                 }
 
                 return View(session);
@@ -52,6 +40,14 @@ namespace DropSpace.Controllers
             } catch (NullReferenceException)
             {
                 return NotFound();
+
+            } catch (AuthenticationException)
+            {
+                return Challenge();
+
+            } catch (MaxSessionsLimitReached)
+            {
+                return View("LimitError");
             }
         }
         
@@ -66,9 +62,12 @@ namespace DropSpace.Controllers
             
             try
             {
-                var member = await sessionService.CreateDefaultNew(User, createSessionModel.Name);
+                var sessionDto = await sessionService.CreateDefaultNew(User, createSessionModel.Name);
 
-                return Json(new SessionDto(member.SessionId, createSessionModel.Name));
+                var member = await sessionService.JoinSession(User, sessionDto.Id);
+
+                return Json(sessionDto);
+
             } catch (Exception er)
             {
                 ModelState.AddModelError(string.Empty, er.Message);
@@ -82,29 +81,23 @@ namespace DropSpace.Controllers
         {
             try
             {
-                var session = await sessionService.GetAsync(id);
+                await sessionService.LeaveSession(User, id);
+            } catch (AuthenticationException)
+            {
+                return Challenge();
+            }
+            
 
-                var member = session.Members
-                    .FirstOrDefault(member => member.UserId == User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            return Redirect("/");
+        }
 
-                if (member != null)
-                    session.Members.Remove(member);
-
-                if (session.Members.Count == 0)
-                {
-                    await sessionService.Delete(id);
-                } else
-                {
-                    await sessionService.Update(session);
-                }
-
+        [HttpGet("Invite")]
+        public async Task<ActionResult> Invite(string code)
+        {
+            if (code == null)
                 return Redirect("/");
 
-            }
-            catch (NullReferenceException)
-            {
-                return NotFound();
-            }
+            return View();
         }
     }
 }

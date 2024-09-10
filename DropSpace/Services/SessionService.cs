@@ -1,6 +1,9 @@
 ﻿using DropSpace.Models.Data;
 using DropSpace.Models.DTOs;
+using DropSpace.Providers;
+using DropSpace.SignalRHubs;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Authentication;
 using System.Security.Claims;
@@ -12,7 +15,9 @@ namespace DropSpace.Services
     }
 
     public class SessionService(ApplicationContext applicationContext,
-        RoleManager<UserPlanRole> roleManager) : IService<Session, Guid>
+        RoleManager<UserPlanRole> roleManager,
+        IHubContext<SessionsHub> hubContext,
+        IConnectionIdProvider connectionIdProvider) : IService<Session, Guid>
     {
 
         public async Task<Guid> CreateAsync(Session entity)
@@ -27,28 +32,25 @@ namespace DropSpace.Services
             return entity.Id;
         }
 
-        public async Task<SessionMember> CreateDefaultNew(ClaimsPrincipal claimsPrincipal, string sessionName)
+        public async Task<SessionDto> CreateDefaultNew(ClaimsPrincipal claimsPrincipal, string sessionName)
         {
             var roleid = claimsPrincipal.FindFirstValue(ClaimTypes.Role)
                 ?? throw new AuthenticationException("Id роли не найден!");
 
-            var userId = claimsPrincipal.FindFirstValue(ClaimTypes.NameIdentifier)
-                ?? throw new AuthenticationException("Id пользователя не найден!");
-
             var userPlan = await roleManager.FindByNameAsync(roleid)
                 ?? throw new AuthenticationException("Роль не найдена!");
 
-            if (userPlan.MaxSessions <= applicationContext
-                .Sessions
-                .Include(s => s.Members)
-                .Where(session => session.Created + session.Duration > DateTime.Now
-                    && session.Members.Any(m => m.UserId == userId))
-                .Count())
+            var session = new Session()
             {
-                throw new MaxSessionsLimitReached(userPlan.MaxSessions); 
-            }
+                Created = DateTime.Now,
+                Duration = TimeSpan.FromSeconds(userPlan.SessionDuration),
+                MaxSize = userPlan.MaxSize,
+                Name = sessionName,
+            };
 
-            return await AddSession(claimsPrincipal.FindFirst(ClaimTypes.NameIdentifier)!.Value, userPlan!, sessionName);
+            await CreateAsync(session);
+
+            return new SessionDto(session.Id, session.Name, 0);
         }
 
         public async Task Delete(Guid key)
@@ -75,6 +77,86 @@ namespace DropSpace.Services
                 .FirstOrDefaultAsync(s => s.Id == key)) ?? throw new NullReferenceException("Сессия не найдена!");
         }
 
+        public async Task<SessionMember> JoinSession(ClaimsPrincipal claimsPrincipal, Guid key)
+        {
+            var session = await GetAsync(key);
+
+            var roleid = claimsPrincipal.FindFirstValue(ClaimTypes.Role)
+                ?? throw new AuthenticationException("Id роли не найден!");
+
+            var userId = claimsPrincipal.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? throw new AuthenticationException("Id пользователя не найден!");
+
+            var userPlan = await roleManager.FindByNameAsync(roleid)
+                ?? throw new AuthenticationException("Роль не найдена!");
+
+            if (!CanJoin(userId, userPlan))
+            {
+                throw new MaxSessionsLimitReached(userPlan.MaxSessions);
+            }
+
+            var member = new SessionMember()
+            {
+                UserId = userId
+            };
+
+            session.Members.Add(member);
+
+            applicationContext.SaveChanges();
+
+            await hubContext.Clients.Clients(
+                await connectionIdProvider.GetConnectionsId(
+                    session
+                    .Members
+                    .Where(member => member.UserId != userId)
+                    .Select(m => m.UserId)
+                    .ToList()
+                )
+            ).SendAsync("newUser", new SessionDto(session.Id, session.Name, session.Members.Count));
+
+            return member;
+        }
+
+        public async Task LeaveSession(ClaimsPrincipal claimsPrincipal, Guid key)
+        {
+            try
+            {
+                var session = await GetAsync(key);
+
+                var userId = claimsPrincipal.FindFirstValue(ClaimTypes.NameIdentifier)
+                    ?? throw new AuthenticationException("Id пользователя не найден!");
+
+                var member = session.Members.FirstOrDefault(m => m.UserId == userId);
+
+                if (member == null)
+                {
+                    return;
+                }
+
+                session.Members.Remove(member);
+
+                if (session.Members.Count == 0)
+                {
+                    await Delete(key);
+                }
+
+                applicationContext.SaveChanges();
+
+                await hubContext.Clients.Clients(
+                    await connectionIdProvider.GetConnectionsId(
+                        session
+                        .Members
+                        .Where(member => member.UserId != userId)
+                        .Select(m => m.UserId)
+                        .ToList()
+                    )
+                ).SendAsync("UserLeave", new SessionDto(session.Id, session.Name, session.Members.Count));
+            } catch (NullReferenceException)
+            {
+                return;
+            }
+        }
+
         public List<SessionDto> GetAllSessions(string userId)
         {
             var sessions = applicationContext.Sessions.Include(session => session.Members);
@@ -86,7 +168,7 @@ namespace DropSpace.Services
                         .Any(member => member.UserId == userId) 
                             && session.Created + session.Duration > DateTime.Now)
                 .Select(
-                    s => new SessionDto(s.Id, s.Name)
+                    s => new SessionDto(s.Id, s.Name, s.Members.Count)
                 )];
         }
 
@@ -97,26 +179,14 @@ namespace DropSpace.Services
             await applicationContext.SaveChangesAsync();
         }
 
-        private async Task<SessionMember> AddSession(string userId, UserPlanRole userPlan, string sessionName)
+        private bool CanJoin(string userId, UserPlanRole userPlan)
         {
-            var session = new Session
-            {
-                Created = DateTime.Now,
-                Duration = TimeSpan.FromSeconds(userPlan!.SessionDuration),
-                MaxSize = userPlan!.MaxSize,
-                Name = sessionName
-            };
-
-            var member = new SessionMember()
-            {
-                UserId = userId
-            };
-
-            session.Members.Add(member);
-
-            await CreateAsync(session);
-
-            return member;
+            return userPlan.MaxSessions > applicationContext
+                .Sessions
+                .Include(s => s.Members)
+                .Where(session => session.Created + session.Duration > DateTime.Now
+                    && session.Members.Any(m => m.UserId == userId))
+                .Count();
         }
     }
 }

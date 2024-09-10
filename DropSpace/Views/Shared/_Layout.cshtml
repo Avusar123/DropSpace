@@ -1,7 +1,6 @@
 ﻿@using DropSpace.Models.Data
 @using System.Security.Claims
 @using DropSpace.Services
-@inject SessionService SessionService
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -90,34 +89,22 @@
             </div>
         </div>
     </div>
-    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-        <div id="invite-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-body">
-                <span id="invite-toast-content"></span>
-                <div class="mt-2 pt-2 border-top">
-                    <button id="invite-toast-button" type="button" class="btn btn-primary btn-sm">Принять</button>
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="toast">Отклонить</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-        <div id="invite-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-body">
-                <span id="invite-toast-content"></span>
-                <div class="mt-2 pt-2 border-top">
-                    <button id="invite-toast-button" type="button" class="btn btn-primary btn-sm">Принять</button>
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="toast">Отклонить</button>
-                </div>
-            </div>
-        </div>
-    </div>
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 99999">
-        <div id="upate-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div id="primary-toast" class="toast align-items-center text-white bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div id="primary-toast-body" class="toast-body">
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="invite-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="toast-body">
-                <span id="invite-toast-content">Данная страница была изменена на сервере, для повторной синхронизации обновите ее</span>
+                <span id="invite-toast-content"></span>
                 <div class="mt-2 pt-2 border-top">
-                    <button id="invite-toast-button" type="button" onclick="window.location.reload()" class="btn btn-primary btn-sm">Обновить</button>
+                    <button id="invite-toast-button" type="button" class="btn btn-primary btn-sm">Принять</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="toast">Отклонить</button>
                 </div>
             </div>
         </div>
@@ -126,8 +113,6 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@latest/dist/browser/signalr.min.js"></script>
-    <script>
-    </script>
     <script src="~/js/site.js"></script>
     <partial name="_ValidationScriptsPartial" />
     @await RenderSectionAsync("Scripts", required: false)

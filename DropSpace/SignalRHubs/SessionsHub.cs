@@ -63,24 +63,5 @@ namespace DropSpace.SignalRHubs
                 return false;
             }
         }
-
-        public async Task<bool> SendEvent(string sessionId, string eventName)
-        {
-            try
-            {
-                var session = await sessionService.GetAsync(Guid.Parse(sessionId));
-
-                var connIds = await connectionIdProvider.GetConnectionsId(session.Members.Select(m => m.UserId).ToList());
-
-                await Clients.Clients(connIds).SendAsync(eventName);
-
-                return true;
-            } catch (Exception ex)
-            {
-                await Clients.Caller.SendAsync("ErrorRecieved", ex.Message);
-
-                return false;
-            }
-        }
     }
 }

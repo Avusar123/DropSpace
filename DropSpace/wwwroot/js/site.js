@@ -38,13 +38,20 @@ connection.on("NewInvite", function (name, id) {
     $("#invite-toast-content").text('Вас приглашают в сессию "' + name + '"');
     $('#invite-toast-button').on("click", () => {
         window.location.href = window.location.href + "Session/" + id
-        connection.invoke("SendEvent", id, "SessionUpdateRequired");
     })
     inviteToast.show();
 })
 
-connection.on("SessionUpdateRequired", function () {
-    var toast = new window.bootstrap.Toast($("#upate-toast"));
+connection.on("newUser", function (session) {
+    var toast = new window.bootstrap.Toast($("#primary-toast"));
+    $("#primary-toast-body").text("К сессии присоединился новый пользователь!")
+    $("#memberCount").text(session.membersCount);
+    toast.show();
+})
+connection.on("UserLeave", function (session) {
+    var toast = new window.bootstrap.Toast($("#primary-toast"));
+    $("#primary-toast-body").text("Пользователь покинул сессию!")
+    $("#memberCount").text(session.membersCount);
     toast.show();
 })
 
@@ -119,6 +126,8 @@ function showError(text) {
 
 const inviteUserButton = document.querySelector("#inviteUser");
 
+const inviteBody = document.querySelector("#invite-body")
+
 if (inviteUserButton)
 inviteUserButton.addEventListener("click", function (e) {
     e.preventDefault();
@@ -130,6 +139,7 @@ inviteUserButton.addEventListener("click", function (e) {
         }
     })
 })
+
 
 document.addEventListener('DOMContentLoaded', function () {
     var invtoast = document.querySelector("#invite-toast")
@@ -181,7 +191,10 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     })
 
-    document.getElementById("createSessionButton").addEventListener("click", function (event) {
+    var createSessionButton = document.getElementById("createSessionButton");
+
+    if (createSessionButton)
+    createSessionButton.addEventListener("click", function (event) {
         event.preventDefault();
 
         const request = new XMLHttpRequest();
@@ -287,6 +300,28 @@ async function updateSessions(connection) {
         a.text = session.name;
         li.appendChild(a);
         li.className = "nav-item"
+
+        if (inviteBody) {
+            a.addEventListener("click", function (ev) {
+                ev.preventDefault();
+
+                const urlParams = new URLSearchParams(window.location.search);
+
+                // Извлекаем параметр 'code'
+                const code = urlParams.get('code');
+
+                var params = ev.target.getAttribute("href").split("/");
+
+                var sessionId = params[params.length - 1]
+
+                connection.invoke("SendInviteByCode", code, sessionId).then((res) => {
+                    if (res) {
+                        window.location.href = "/";
+                    }
+                })
+            })
+        }
+
         sessionsContainer.appendChild(li);
     })
 }
