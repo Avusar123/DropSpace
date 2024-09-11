@@ -1,6 +1,6 @@
 ﻿namespace DropSpace.Providers
 {
-    public interface IConnectionIdProvider
+    public interface IConnectionIdStore
     {
         public Task SaveConnectionId(string userId, string connectionId);
 

@@ -1,7 +1,7 @@
 ﻿
 namespace DropSpace.Providers
 {
-    public class InMemoryInviteCodeProvider : IInviteCodeProvider
+    public class InMemoryInviteCodeStore : IInviteCodeStore
     {
         private Dictionary<string, string> Codes = [];
 

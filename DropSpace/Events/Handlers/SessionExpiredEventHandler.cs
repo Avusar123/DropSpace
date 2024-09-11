@@ -10,13 +10,14 @@ namespace DropSpace.Events.Handlers
 {
     public class SessionExpiredEventHandler(
         IHubContext<SessionsHub> hubContext,
-        IConnectionIdProvider connectionIdProvider) : IEventHandler<SessionExpiredEvent>
+        IConnectionIdStore connectionIdStore
+        ) : IEventHandler<SessionExpiredEvent>
     {
         public async Task Handle(SessionExpiredEvent ev)
         {
 
             await hubContext.Clients.Clients(
-                    await connectionIdProvider.GetConnectionsId(
+                    await connectionIdStore.GetConnectionsId(
                         ev.UserIds
                     )
             ).SendAsync("SessionExpired");

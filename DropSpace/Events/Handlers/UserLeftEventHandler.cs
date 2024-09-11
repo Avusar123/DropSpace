@@ -10,13 +10,13 @@ namespace DropSpace.Events.Handlers
 {
     public class UserLeftEventHandler(
         IHubContext<SessionsHub> hubContext,
-        IConnectionIdProvider connectionIdProvider) : IEventHandler<UserLeftEvent>
+        IConnectionIdStore connectionIdStore) : IEventHandler<UserLeftEvent>
     {
         public async Task Handle(UserLeftEvent ev)
         {
 
             await hubContext.Clients.Clients(
-                    await connectionIdProvider.GetConnectionsId(
+                    await connectionIdStore.GetConnectionsId(
                         ev.Session.Members
                         .Where(m => m.UserId != ev.UserId)
                         .Select(m => m.UserId).ToList()

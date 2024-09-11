@@ -38,9 +38,9 @@ builder.Services.AddDbContext<ApplicationContext>(options => options.UseInMemory
 
 builder.Services.AddScoped<IAuthorizationHandler, MemberRequirementAuthorizationHandler>();
 
-builder.Services.AddSingleton<IInviteCodeProvider, InMemoryInviteCodeProvider>();
+builder.Services.AddSingleton<IInviteCodeStore, InMemoryInviteCodeStore>();
 
-builder.Services.AddSingleton<IConnectionIdProvider, InMemoryConnectionIdProvider>();
+builder.Services.AddSingleton<IConnectionIdStore, InMemoryConnectionIdStore>();
 
 builder.Services.AddSingleton<IEventTransmitter, EventTransmitter>();
 

@@ -10,8 +10,8 @@ namespace DropSpace.SignalRHubs
 
     [Authorize]
     public class SessionsHub(ISessionService sessionService, 
-        IInviteCodeProvider inviteCodeProvider,
-        IConnectionIdProvider connectionIdProvider) : Hub
+        IInviteCodeStore inviteCodeStore,
+        IConnectionIdStore connectionIdStore) : Hub
     {
         public override async Task OnConnectedAsync()
         {
@@ -23,14 +23,14 @@ namespace DropSpace.SignalRHubs
                 return;
             }
 
-            await connectionIdProvider.SaveConnectionId(Context.UserIdentifier, Context.ConnectionId);
+            await connectionIdStore.SaveConnectionId(Context.UserIdentifier, Context.ConnectionId);
         }
 
         public override Task OnDisconnectedAsync(Exception? exception)
         {
-            inviteCodeProvider.RemoveUserId(Context.UserIdentifier!);
+            inviteCodeStore.RemoveUserId(Context.UserIdentifier!);
 
-            connectionIdProvider.Remove(Context.UserIdentifier!);
+            connectionIdStore.Remove(Context.UserIdentifier!);
 
             return Task.CompletedTask;
         }
@@ -42,14 +42,14 @@ namespace DropSpace.SignalRHubs
 
         public async Task<string> RefreshCode()
         {
-            return await inviteCodeProvider.RefreshCode(Context.UserIdentifier!);
+            return await inviteCodeStore.RefreshCode(Context.UserIdentifier!);
         }
 
         public async Task<bool> SendInviteByCode(string code, string sessionId)
         {
             try
             {
-                var userId = await inviteCodeProvider.GetUserIdByCodeOrNull(code.ToUpper()) ?? throw new NullReferenceException("Пользователь не найден!");
+                var userId = await inviteCodeStore.GetUserIdByCodeOrNull(code.ToUpper()) ?? throw new NullReferenceException("Пользователь не найден!");
 
                 var session = await sessionService.GetAsync(Guid.Parse(sessionId));
 

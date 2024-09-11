@@ -11,12 +11,12 @@ namespace DropSpace.Events.Handlers
 {
     public class UserJoinedEventHandler(
         IHubContext<SessionsHub> hubContext, 
-        IConnectionIdProvider connectionIdProvider) : IEventHandler<UserJoinedEvent>
+        IConnectionIdStore connectionIdStore) : IEventHandler<UserJoinedEvent>
     {
         public async Task Handle(UserJoinedEvent ev)
         {
             await hubContext.Clients.Clients(
-                    await connectionIdProvider.GetConnectionsId(
+                    await connectionIdStore.GetConnectionsId(
                         ev.Session
                         .Members
                         .Where(m => m.UserId != ev.UserId)
