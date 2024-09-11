@@ -1,5 +1,10 @@
 using DropSpace;
 using DropSpace.DataManagers;
+using DropSpace.Events;
+using DropSpace.Events.Events;
+using DropSpace.Events.Handlers;
+using DropSpace.Events.Interfaces;
+using DropSpace.Jobs;
 using DropSpace.Models.Data;
 using DropSpace.Providers;
 using DropSpace.Requirements;
@@ -13,6 +18,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Quartz;
+using Quartz.AspNetCore;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 
@@ -25,7 +32,7 @@ builder.Services.AddScoped<ClaimsFactory>();
 
 builder.Services.AddHostedService<DataSeed>();
 
-builder.Services.AddScoped<SessionService>();
+builder.Services.AddScoped<ISessionService, SessionService>();
 
 builder.Services.AddDbContext<ApplicationContext>(options => options.UseInMemoryDatabase("InMemory"));
 
@@ -34,6 +41,37 @@ builder.Services.AddScoped<IAuthorizationHandler, MemberRequirementAuthorization
 builder.Services.AddSingleton<IInviteCodeProvider, InMemoryInviteCodeProvider>();
 
 builder.Services.AddSingleton<IConnectionIdProvider, InMemoryConnectionIdProvider>();
+
+builder.Services.AddSingleton<IEventTransmitter, EventTransmitter>();
+
+builder.Services.AddScoped<IEventHandler<UserJoinedEvent>, UserJoinedEventHandler>();
+
+builder.Services.AddScoped<IEventHandler<UserLeftEvent>, UserLeftEventHandler>();
+
+builder.Services.AddScoped<IEventHandler<SessionExpiredEvent>, SessionExpiredEventHandler>();
+
+builder.Services.AddQuartz(q =>
+{
+    q.AddJob<DeleteExpiredSessionsJob>(opts => 
+    opts.WithIdentity("DeleteExpired", "Session")
+        .RequestRecovery());
+
+    q.AddTrigger(trigger =>
+    {
+        trigger.ForJob("DeleteExpired", "Session")
+        .WithSimpleSchedule(shedule =>
+        {
+            shedule
+            .WithIntervalInSeconds(15)
+            .WithMisfireHandlingInstructionNextWithRemainingCount()
+            .RepeatForever();
+        })
+        .StartNow();
+    });
+});
+
+// ASP.NET Core hosting
+builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
 
 builder.Services.AddIdentity<IdentityUser, UserPlanRole>(options =>
 {

@@ -1,4 +1,6 @@
-﻿using DropSpace.Models.Data;
+﻿using DropSpace.Events.Events;
+using DropSpace.Events.Interfaces;
+using DropSpace.Models.Data;
 using DropSpace.Models.DTOs;
 using DropSpace.Providers;
 using DropSpace.SignalRHubs;
@@ -16,8 +18,7 @@ namespace DropSpace.Services
 
     public class SessionService(ApplicationContext applicationContext,
         RoleManager<UserPlanRole> roleManager,
-        IHubContext<SessionsHub> hubContext,
-        IConnectionIdProvider connectionIdProvider) : IService<Session, Guid>
+        IEventTransmitter eventTransmitter) : ISessionService
     {
 
         public async Task<Guid> CreateAsync(Session entity)
@@ -67,13 +68,13 @@ namespace DropSpace.Services
             await applicationContext.SaveChangesAsync();
         }
 
-        public async Task<Session> GetAsync(Guid key)
+        public async Task<Session> GetAsync(Guid key, bool includeExpired = false)
         {
             return (await applicationContext
                 .Sessions
                 .Include(session => session.Files)
                 .Include(session => session.Members)
-                .Where(session => session.Created + session.Duration > DateTime.Now)
+                .Where(session => (session.Created + session.Duration > DateTime.Now) || includeExpired)
                 .FirstOrDefaultAsync(s => s.Id == key)) ?? throw new NullReferenceException("Сессия не найдена!");
         }
 
@@ -102,17 +103,9 @@ namespace DropSpace.Services
 
             session.Members.Add(member);
 
-            applicationContext.SaveChanges();
+            await eventTransmitter.FireEvent(new UserJoinedEvent() { Session = session, UserId = userId });
 
-            await hubContext.Clients.Clients(
-                await connectionIdProvider.GetConnectionsId(
-                    session
-                    .Members
-                    .Where(member => member.UserId != userId)
-                    .Select(m => m.UserId)
-                    .ToList()
-                )
-            ).SendAsync("newUser", new SessionDto(session.Id, session.Name, session.Members.Count));
+            applicationContext.SaveChanges();
 
             return member;
         }
@@ -140,18 +133,12 @@ namespace DropSpace.Services
                     await Delete(key);
                 }
 
+                await eventTransmitter.FireEvent(new UserLeftEvent() { Session = session, UserId = userId });
+
                 applicationContext.SaveChanges();
 
-                await hubContext.Clients.Clients(
-                    await connectionIdProvider.GetConnectionsId(
-                        session
-                        .Members
-                        .Where(member => member.UserId != userId)
-                        .Select(m => m.UserId)
-                        .ToList()
-                    )
-                ).SendAsync("UserLeave", new SessionDto(session.Id, session.Name, session.Members.Count));
-            } catch (NullReferenceException)
+            }
+            catch (NullReferenceException)
             {
                 return;
             }
@@ -162,10 +149,10 @@ namespace DropSpace.Services
             var sessions = applicationContext.Sessions.Include(session => session.Members);
 
             return [.. sessions
-                .Where(session => 
+                .Where(session =>
                     session
                         .Members
-                        .Any(member => member.UserId == userId) 
+                        .Any(member => member.UserId == userId)
                             && session.Created + session.Duration > DateTime.Now)
                 .Select(
                     s => new SessionDto(s.Id, s.Name, s.Members.Count)

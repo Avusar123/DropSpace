@@ -16,7 +16,7 @@ namespace DropSpace
 
             var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<UserPlanRole>>();
 
-            var sessionManager = scope.ServiceProvider.GetRequiredService<SessionService>();
+            var sessionManager = scope.ServiceProvider.GetRequiredService<ISessionService>();
 
 
             if (!roleManager.Roles.Any())

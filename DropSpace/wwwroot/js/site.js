@@ -1,6 +1,6 @@
 ﻿var toggledButtons = [];
 
-const filesoffcanvas = document.getElementById("navbarToggleExternalContent");
+const filesoffcanvas = document.getElementById("filesActionsNavbar");
 
 const filesCounter = document.getElementById("files-counter")
 
@@ -42,17 +42,21 @@ connection.on("NewInvite", function (name, id) {
     inviteToast.show();
 })
 
-connection.on("newUser", function (session) {
+connection.on("NewUser", function (session) {
     var toast = new window.bootstrap.Toast($("#primary-toast"));
     $("#primary-toast-body").text("К сессии присоединился новый пользователь!")
     $("#memberCount").text(session.membersCount);
     toast.show();
 })
-connection.on("UserLeave", function (session) {
+connection.on("UserLeft", function (session) {
     var toast = new window.bootstrap.Toast($("#primary-toast"));
     $("#primary-toast-body").text("Пользователь покинул сессию!")
     $("#memberCount").text(session.membersCount);
     toast.show();
+})
+
+connection.on("SessionExpired", function () {
+    updateSessions(connection)
 })
 
 connection.on("ErrorRecieved", function (err) {
@@ -224,7 +228,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-
             new window.bootstrap.Button(file).toggle();
             if (event.target.closest(".file").getAttribute("fileid")) {
                 toggleArrayElement(toggledButtons, event.target.closest(".file").getAttribute("fileid"))
@@ -308,7 +311,7 @@ async function updateSessions(connection) {
                 const urlParams = new URLSearchParams(window.location.search);
 
                 // Извлекаем параметр 'code'
-                const code = urlParams.get('code');
+                const code = urlParams.get('code');1
 
                 var params = ev.target.getAttribute("href").split("/");
 
