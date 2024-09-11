@@ -12,7 +12,7 @@ namespace DropSpace.Controllers
 {
     [Route("Session")]
     [Authorize]
-    public class SessionController(SessionService sessionService, 
+    public class SessionController(ISessionService sessionService, 
         IAuthorizationService authorizationService) : Controller
     {
 

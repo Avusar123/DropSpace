@@ -9,7 +9,7 @@ namespace DropSpace.SignalRHubs
 {
 
     [Authorize]
-    public class SessionsHub(SessionService sessionService, 
+    public class SessionsHub(ISessionService sessionService, 
         IInviteCodeProvider inviteCodeProvider,
         IConnectionIdProvider connectionIdProvider) : Hub
     {
