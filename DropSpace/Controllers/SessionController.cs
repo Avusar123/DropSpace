@@ -5,12 +5,14 @@ using DropSpace.Requirements;
 using DropSpace.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Authentication;
 using System.Security.Claims;
 
 namespace DropSpace.Controllers
 {
     [Route("Session")]
+    [EnableRateLimiting("fixed")]
     [Authorize]
     public class SessionController(ISessionService sessionService, 
         IAuthorizationService authorizationService) : Controller
@@ -39,7 +41,7 @@ namespace DropSpace.Controllers
 
             } catch (NullReferenceException)
             {
-                return NotFound();
+                return Redirect("/");
 
             } catch (AuthenticationException)
             {

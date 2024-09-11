@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace DropSpace.Controllers
 {
     [Authorize]
+    [EnableRateLimiting("fixed")]
     public class HomeController : Controller
     {
         public IActionResult Index()

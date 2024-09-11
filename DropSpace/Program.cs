@@ -93,7 +93,7 @@ builder.Services.AddRateLimiter(_ => _
     .AddFixedWindowLimiter(policyName: "fixed", options =>
     {
         options.PermitLimit = 8;
-        options.Window = TimeSpan.FromSeconds(12);
+        options.Window = TimeSpan.FromSeconds(15);
         options.QueueLimit = 2;
     }));
 
@@ -150,6 +150,6 @@ app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}").RequireRateLimiting("fixed");
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
