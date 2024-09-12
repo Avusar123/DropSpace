@@ -1,7 +1,7 @@
 ﻿using DropSpace.Models.Data;
 using DropSpace.Models.DTOs;
-using DropSpace.Providers;
 using DropSpace.Services;
+using DropSpace.Stores.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
@@ -35,9 +35,9 @@ namespace DropSpace.SignalRHubs
             return Task.CompletedTask;
         }
 
-        public Task<List<SessionDto>> GetSessions()
+        public async Task<List<SessionDto>> GetSessions()
         {
-            return Task.FromResult(sessionService.GetAllSessions(Context.UserIdentifier!));
+            return await sessionService.GetAllSessions(Context.UserIdentifier!);
         }
 
         public async Task<string> RefreshCode()

@@ -2,9 +2,9 @@
 using DropSpace.Events.Interfaces;
 using DropSpace.Models.Data;
 using DropSpace.Models.DTOs;
-using DropSpace.Providers;
 using DropSpace.Services;
 using DropSpace.SignalRHubs;
+using DropSpace.Stores.Interfaces;
 using Microsoft.AspNetCore.SignalR;
 
 namespace DropSpace.Events.Handlers

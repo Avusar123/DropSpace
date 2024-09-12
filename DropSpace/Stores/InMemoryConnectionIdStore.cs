@@ -1,4 +1,6 @@
 ﻿
+using DropSpace.Stores.Interfaces;
+
 namespace DropSpace.Providers
 {
     public class InMemoryConnectionIdStore : IConnectionIdStore

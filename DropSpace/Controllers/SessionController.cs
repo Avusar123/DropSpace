@@ -64,7 +64,7 @@ namespace DropSpace.Controllers
             
             try
             {
-                var sessionDto = await sessionService.CreateDefaultNew(User, createSessionModel.Name);
+                var sessionDto = await sessionService.CreateFromPrincipalAsync(User, createSessionModel.Name);
 
                 var member = await sessionService.JoinSession(User, sessionDto.Id);
 

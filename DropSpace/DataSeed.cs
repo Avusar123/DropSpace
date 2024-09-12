@@ -1,5 +1,6 @@
 ﻿using DropSpace.Models.Data;
 using DropSpace.Services;
+using DropSpace.Stores.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 
@@ -16,7 +17,7 @@ namespace DropSpace
 
             var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<UserPlanRole>>();
 
-            var sessionManager = scope.ServiceProvider.GetRequiredService<ISessionService>();
+            var sessionStore = scope.ServiceProvider.GetRequiredService<ISessionStore>();
 
 
             if (!roleManager.Roles.Any())
@@ -84,7 +85,7 @@ namespace DropSpace
                     );
                 }
                 
-                await sessionManager.CreateAsync(session);
+                await sessionStore.CreateAsync(session);
 
             }
         }

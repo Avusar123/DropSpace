@@ -1,4 +1,4 @@
-﻿namespace DropSpace.Providers
+﻿namespace DropSpace.Stores.Interfaces
 {
     public interface IInviteCodeStore
     {

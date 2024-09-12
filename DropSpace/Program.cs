@@ -10,6 +10,8 @@ using DropSpace.Providers;
 using DropSpace.Requirements;
 using DropSpace.Services;
 using DropSpace.SignalRHubs;
+using DropSpace.Stores;
+using DropSpace.Stores.Interfaces;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -39,6 +41,8 @@ builder.Services.AddDbContext<ApplicationContext>(options => options.UseInMemory
 builder.Services.AddScoped<IAuthorizationHandler, MemberRequirementAuthorizationHandler>();
 
 builder.Services.AddSingleton<IInviteCodeStore, InMemoryInviteCodeStore>();
+
+builder.Services.AddScoped<ISessionStore, SessionStore>();
 
 builder.Services.AddSingleton<IConnectionIdStore, InMemoryConnectionIdStore>();
 
