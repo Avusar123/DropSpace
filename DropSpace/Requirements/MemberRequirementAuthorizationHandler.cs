@@ -5,10 +5,10 @@ using System.Security.Claims;
 
 namespace DropSpace.Requirements
 {
-    public class MemberRequirementAuthorizationHandler(ApplicationContext applicationContext) : AuthorizationHandler<MemberRequirement, Session>
+    public class MemberRequirementAuthorizationHandler(ApplicationContext applicationContext) : AuthorizationHandler<MemberRequirement, Guid>
     {
 
-        protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, MemberRequirement requirement, Session resource)
+        protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, MemberRequirement requirement, Guid resource)
         {
             var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
 
@@ -21,7 +21,7 @@ namespace DropSpace.Requirements
 
             var member = await applicationContext.Members.FirstOrDefaultAsync(member => 
             member.UserId == userIdClaim.Value 
-            && member.SessionId == resource.Id);
+            && member.SessionId == resource);
 
             if (member == null)
             {

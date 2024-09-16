@@ -92,7 +92,7 @@ namespace DropSpace.Controllers
             {
                 ModelState.AddModelError(string.Empty, INVALIDLOGGINGATTEMPTMESSAGE);
 
-                return View();
+                return View(model);
             }
 
             await signInManager.SignInWithClaimsAsync(user, null,

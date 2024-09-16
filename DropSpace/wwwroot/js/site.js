@@ -42,6 +42,23 @@ connection.on("NewInvite", function (name, id) {
     inviteToast.show();
 })
 
+connection.on("NewChunkUploaded", function (pendingUpload) {
+    if (!document.querySelector(".file-container")) {
+        return;
+    }
+
+    var file = $(`.file[fileid=${pendingUpload.id}]`)
+
+    file.find(".sended-size").text(pendingUpload.sendedSizeMb)
+    file.find(".progress-bar").css("width", `${(pendingUpload.sendedSize / pendingUpload.size) * 100}%`)
+
+    countSesisonSize();
+})
+
+connection.on("FileListChanged", function () {
+    updateFiles(connection);
+})
+
 connection.on("NewUser", function (session) {
     var toast = new window.bootstrap.Toast($("#primary-toast"));
     $("#primary-toast-body").text("К сессии присоединился новый пользователь!")
@@ -67,6 +84,7 @@ connection.start().catch(function (err) {
     return console.error(err.toString());
 }).then(() => {
     updateSessions(connection);
+    updateFiles(connection);
     code = refreshCode(connection).then((result) => {
         if (document.querySelector("#home-qr")) {
             var currentUrl = window.location.href + "Session/Invite?code=" + result;
@@ -99,7 +117,6 @@ if (timeCounter) {
 
     }, 1000);
 }
-
 
 
 if (leaveButton)
@@ -143,7 +160,6 @@ inviteUserButton.addEventListener("click", function (e) {
         }
     })
 })
-
 
 document.addEventListener('DOMContentLoaded', function () {
     var invtoast = document.querySelector("#invite-toast")
@@ -220,11 +236,95 @@ document.addEventListener('DOMContentLoaded', function () {
         request.send(formData);
     })
 
+    async function onFileInputChange(ev) {
+        const url = window.location.href;
+        const SessionId = url.split('/').pop();
+        const hostName = window.location.href.split("/")[2];
+
+        for (var i = 0; i < ev.target.files.length; i++) {
+            
+            const file = ev.target.files[i]
+
+            const arrayBuffer = await file.arrayBuffer();
+            const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+            var formData = new FormData();
+
+            formData.append("size", file.size);
+            formData.append("hash", hashHex);
+            formData.append("name", file.name);
+            formData.append("sessionId", SessionId)
+
+            var rowresponse = await fetch("https://" + hostName + "/File", {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!rowresponse.ok) {
+                showError(await rowresponse.text())
+                continue;
+            }
+
+            response = await rowresponse.json();
+            
+
+            var newFormdata
+
+            var uploadId;
+
+            while (!response.isCompleted) {
+
+                if (!uploadId) {
+                    uploadId = response.id;
+                }
+
+                newFormdata = new FormData();
+
+                newFormdata.append("file", sliceFile(file, response.sendedSize, response.chunkSize))
+
+                newFormdata.append("uploadId", uploadId)
+
+                rowresponse = await fetch("https://" + hostName + "/File", {
+                    method: 'PUT',
+                    body: newFormdata
+                });
+
+                if (!rowresponse.ok) {
+                    showError(await rowresponse.text())
+                    break;
+                }
+
+                response = await rowresponse.json();
+            }
+
+            uploadId = null;
+        }
+    }
+
+    function sliceFile(file, start, chunkSize) {
+
+        const end = Math.min(start + chunkSize, file.size);
+
+        // Получаем текущий кусок файла
+        const chunk = file.slice(start, end);
+        // Используем slice для получения среза
+        return chunk;
+    }
+
+    $("#fileInput").on("change", async function (ev) {
+        $("#fileInput").attr("disabled", true);
+        await onFileInputChange(ev)
+        $("#fileInput").attr("disabled", false);
+    })
+
     var files = document.querySelectorAll(".file");
 
     files.forEach(file => {
         file.addEventListener('click', function (event) {
             if (event.target.closest(".file").classList.contains("add-file-button")) {
+                document.querySelector("#fileInput").click();
                 return;
             }
 
@@ -251,6 +351,22 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     })
 });
+
+
+function countSesisonSize() {
+    if (!document.querySelector("#session-size")) {
+        return;
+    }
+
+    var sum = 0;
+
+    $(".sended-size").each(function (ind, size) {
+        var value = parseInt(size.innerText); // Получаем текст из каждого <span> и преобразуем в число
+        sum += value; // Добавляем к общей сумме
+    });
+
+    $("#session-size").text(sum);
+}
 
 function toggleArrayElement(arr, element) {
     const index = arr.indexOf(element);
@@ -327,6 +443,89 @@ async function updateSessions(connection) {
 
         sessionsContainer.appendChild(li);
     })
+}
+
+async function updateFiles(connection) {
+
+    if (!document.querySelector(".file-container")) {
+        return;
+    }
+
+    var hrefSplitted = window.location.href.split("/");
+
+    if (!hrefSplitted[hrefSplitted.length - 1]) {
+        return;
+    }
+
+    $('.uploaded-file').remove();
+    $('.pending-file').remove();
+
+    var files = await connection.invoke("GetFiles", hrefSplitted[hrefSplitted.length - 1]);
+
+    files.forEach(
+        file => {
+            const fileElement = $(`
+                <div class="file p-2 uploaded-file btn-dark btn d-flex flex-column align-items-center justify-content-center" fileId="${file.id}" style="border-radius: 15px; width: 150px; height: 200px;">
+                    <div class="d-flex w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
+                        <p><span class="sended-size">${file.size}</span> <span class="subtitle" style="font-size: 0.7em; letter-spacing: 1px;">MB</span></p>
+                    </div>
+                    <div class="d-flex w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
+                        <i class="fa-regular fa-file" style="font-size: 6em"></i>
+                    </div>
+                    <div class="d-flex w-100 align-items-center text-truncate justify-content-center" style="flex: 0 0 33%">
+                        ${file.fileName}
+                    </div>
+                </div>
+            `);
+            $('.file-container').append(fileElement);
+
+            fileElement.on("click", function (event) {
+                new window.bootstrap.Button(fileElement).toggle();
+                if (event.target.closest(".file").getAttribute("fileid")) {
+                    toggleArrayElement(toggledButtons, event.target.closest(".file").getAttribute("fileid"))
+                }
+
+                if (filesCounter) {
+                    filesCounter.innerText = "Выбрано " + toggledButtons.length + " Файлов";
+                }
+
+                if (!filesoffcanvasObj && filesoffcanvas) {
+                    filesoffcanvasObj = new window.bootstrap.Collapse(filesoffcanvas)
+                }
+
+                if (filesoffcanvas) {
+                    if (toggledButtons.length > 0) {
+                        filesoffcanvasObj.show();
+                    } else {
+                        filesoffcanvasObj.hide();
+                    }
+                }
+            })
+        }
+    )
+
+    var uploads = (await connection.invoke("GetUploads", hrefSplitted[hrefSplitted.length - 1]));
+
+    uploads.forEach(
+        file => {
+            const fileElement = $(`
+                <div class="file p-2 pending-file btn-dark btn d-flex flex-column align-items-center justify-content-center" fileId="${file.id}" style = "border-radius: 15px; width: 150px; height: 200px;" >
+                    <div class="d-flex flex-column w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
+                        <div class="progress" style="flex: 0 0 15%; width: 75%">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: ${(file.sendedSize / file.size) * 100}%"></div>
+                        </div>
+                        <p><span class="sended-size">${file.sendedSizeMb}</span> / ${file.sizeMb} <span class="subtitle" style="font-size: 0.7em; flex: 0 0 85%; letter-spacing: 1px;">MB</span></p>
+                    </div>
+                    <div class="spinner-border" role="status" aria-hidden="true"></div>
+                    <div class="d-flex w-100 align-items-center text-truncate justify-content-center" style="flex: 0 0 33%">
+                        ${file.fileName}
+                    </div>
+                </div>`);
+            $('.file-container').append(fileElement);
+        }
+    )
+
+    countSesisonSize();
 }
 
 function collectCode(boxes) {

@@ -3,6 +3,7 @@ using DropSpace.Events.Interfaces;
 using DropSpace.Models.Data;
 using DropSpace.Models.DTOs;
 using DropSpace.Providers;
+using DropSpace.Services.Interfaces;
 using DropSpace.SignalRHubs;
 using DropSpace.Stores.Interfaces;
 using Microsoft.AspNetCore.Identity;
@@ -133,6 +134,23 @@ namespace DropSpace.Services
         public async Task Update(Session entity)
         {
             await sessionStore.UpdateAsync (entity);
+        }
+        public async Task<bool> CanSave(Guid sessionId, long size)
+        {
+            var session = await GetAsync(sessionId);
+
+            var totalSize = session
+                            .Files
+                            .Select(x => x.ByteSize)
+                            .Concat(
+                                session
+                                .PendingUploads
+                                    .Select(x => x.SendedSize)
+                                    .ToList()
+                            )
+                            .Sum();
+
+            return session.MaxSize - totalSize >= size;
         }
 
         private async Task<bool> CanJoin(string userId, UserPlanRole userPlan)

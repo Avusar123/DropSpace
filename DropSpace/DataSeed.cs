@@ -25,7 +25,7 @@ namespace DropSpace
                 var permanentUserRole = new UserPlanRole()
                 {
                     Name = "PermanentUser",
-                    MaxSize = 3000,
+                    MaxSize = (long)3000 * 1024 * 1024,
                     MaxSessions = 3,
                     SessionDuration = (int)TimeSpan.FromMinutes(15).TotalSeconds
                 };
@@ -34,7 +34,7 @@ namespace DropSpace
                 {
                     Name = "OneTimeUser",
                     MaxSessions = 1,
-                    MaxSize = 1000,
+                    MaxSize = (long)1000 * 1024 * 1024,
                     SessionDuration = (int)TimeSpan.FromMinutes(5).TotalSeconds
                 };
 
@@ -67,23 +67,16 @@ namespace DropSpace
                 {
                     Id = Guid.NewGuid(),
                     Created = DateTime.Now,
-                    Duration = TimeSpan.FromMinutes(9999), 
+                    Duration = TimeSpan.FromMinutes(9999),
                     MaxSize = 1000,
                     Members = new List<SessionMember>()
                     {
                         new() { UserId = user.Id }
                     },
+                    Files = [],
+                    PendingUploads = [],
                     Name = "Test"
                 };
-
-
-                for (int i = 0; i < 20; i++)
-                {
-                    session.AttachFileToSession
-                    (
-                        new FileModel() { Id = Guid.NewGuid(), FileName = "Test.exe", FilePath = "~/Test", Size = 10 }
-                    );
-                }
                 
                 await sessionStore.CreateAsync(session);
 

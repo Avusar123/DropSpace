@@ -2,7 +2,7 @@
 using DropSpace.Models.DTOs;
 using System.Security.Claims;
 
-namespace DropSpace.Services
+namespace DropSpace.Services.Interfaces
 {
     public interface ISessionService
     {
@@ -13,5 +13,6 @@ namespace DropSpace.Services
         Task<SessionMember> JoinSession(ClaimsPrincipal claimsPrincipal, Guid key);
         Task LeaveSession(ClaimsPrincipal claimsPrincipal, Guid key);
         Task Update(Session entity);
+        Task<bool> CanSave(Guid sessionId, long size);
     }
 }
