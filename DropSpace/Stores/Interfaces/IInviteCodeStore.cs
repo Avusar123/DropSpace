@@ -1,6 +1,6 @@
-﻿namespace DropSpace.Providers
+﻿namespace DropSpace.Stores.Interfaces
 {
-    public interface IInviteCodeProvider
+    public interface IInviteCodeStore
     {
         public Task<string> RefreshCode(string userId);
 

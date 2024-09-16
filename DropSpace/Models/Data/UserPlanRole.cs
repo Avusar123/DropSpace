@@ -4,7 +4,7 @@ namespace DropSpace.Models.Data
 {
     public class UserPlanRole : IdentityRole
     {
-        public int MaxSize { get; set; }
+        public long MaxSize { get; set; }
 
         public int MaxSessions { get; set; }
 

@@ -3,6 +3,7 @@ using DropSpace.Models.Data;
 using DropSpace.Models.DTOs;
 using DropSpace.Requirements;
 using DropSpace.Services;
+using DropSpace.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -30,7 +31,7 @@ namespace DropSpace.Controllers
                     return Redirect("/");
                 }
 
-                var result = await authorizationService.AuthorizeAsync(User, session, new MemberRequirement());
+                var result = await authorizationService.AuthorizeAsync(User, session.Id, new MemberRequirement());
 
                 if (!result.Succeeded)
                 {
@@ -64,7 +65,7 @@ namespace DropSpace.Controllers
             
             try
             {
-                var sessionDto = await sessionService.CreateDefaultNew(User, createSessionModel.Name);
+                var sessionDto = await sessionService.CreateFromPrincipalAsync(User, createSessionModel.Name);
 
                 var member = await sessionService.JoinSession(User, sessionDto.Id);
 

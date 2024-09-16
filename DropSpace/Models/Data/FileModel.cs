@@ -4,11 +4,11 @@
     {
         public Guid Id { get; set; }
 
-        public int Size { get; set; }
+        public long ByteSize { get; set; }
 
         public string FileName { get; set; }
 
-        public string FilePath { get; set; }
+        public string FileHash { get; set; }
 
         public Guid SessionId { get; set; }
     }

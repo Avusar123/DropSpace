@@ -1,22 +1,22 @@
 ﻿using DropSpace.Events.Events;
 using DropSpace.Events.Interfaces;
 using DropSpace.Models.DTOs;
-using DropSpace.Providers;
 using DropSpace.Services;
 using DropSpace.SignalRHubs;
+using DropSpace.Stores.Interfaces;
 using Microsoft.AspNetCore.SignalR;
 
 namespace DropSpace.Events.Handlers
 {
     public class UserLeftEventHandler(
         IHubContext<SessionsHub> hubContext,
-        IConnectionIdProvider connectionIdProvider) : IEventHandler<UserLeftEvent>
+        IConnectionIdStore connectionIdStore) : IEventHandler<UserLeftEvent>
     {
         public async Task Handle(UserLeftEvent ev)
         {
 
             await hubContext.Clients.Clients(
-                    await connectionIdProvider.GetConnectionsId(
+                    await connectionIdStore.GetConnectionsId(
                         ev.Session.Members
                         .Where(m => m.UserId != ev.UserId)
                         .Select(m => m.UserId).ToList()

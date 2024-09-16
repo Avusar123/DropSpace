@@ -1,7 +1,9 @@
 ﻿
+using DropSpace.Stores.Interfaces;
+
 namespace DropSpace.Providers
 {
-    public class InMemoryConnectionIdProvider : IConnectionIdProvider
+    public class InMemoryConnectionIdStore : IConnectionIdStore
     {
         Dictionary<string, string> connectionIds = [];
 

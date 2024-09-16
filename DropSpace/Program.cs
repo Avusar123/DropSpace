@@ -4,12 +4,17 @@ using DropSpace.Events;
 using DropSpace.Events.Events;
 using DropSpace.Events.Handlers;
 using DropSpace.Events.Interfaces;
+using DropSpace.Files;
+using DropSpace.Files.Interfaces;
 using DropSpace.Jobs;
 using DropSpace.Models.Data;
 using DropSpace.Providers;
 using DropSpace.Requirements;
 using DropSpace.Services;
+using DropSpace.Services.Interfaces;
 using DropSpace.SignalRHubs;
+using DropSpace.Stores;
+using DropSpace.Stores.Interfaces;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -38,17 +43,33 @@ builder.Services.AddDbContext<ApplicationContext>(options => options.UseInMemory
 
 builder.Services.AddScoped<IAuthorizationHandler, MemberRequirementAuthorizationHandler>();
 
-builder.Services.AddSingleton<IInviteCodeProvider, InMemoryInviteCodeProvider>();
+builder.Services.AddScoped<IFileFlowCoordinator, FileFlowCoordinator>();
 
-builder.Services.AddSingleton<IConnectionIdProvider, InMemoryConnectionIdProvider>();
+builder.Services.AddSingleton<IFileSaver, FileSaver>();
+
+builder.Services.AddSingleton<IInviteCodeStore, InMemoryInviteCodeStore>();
+
+builder.Services.AddScoped<ISessionStore, SessionStore>();
+
+builder.Services.AddScoped<IFileService, FileService>();
+
+builder.Services.AddScoped<IFileStore, FileStore>();
+
+builder.Services.AddScoped<IPendingUploadStore, PendingUploadStore>();
+
+builder.Services.AddSingleton<IConnectionIdStore, InMemoryConnectionIdStore>();
 
 builder.Services.AddSingleton<IEventTransmitter, EventTransmitter>();
 
 builder.Services.AddScoped<IEventHandler<UserJoinedEvent>, UserJoinedEventHandler>();
 
+builder.Services.AddScoped<IEventHandler<FileListChangedEvent>, FileListChangedEventHandler>();
+
 builder.Services.AddScoped<IEventHandler<UserLeftEvent>, UserLeftEventHandler>();
 
 builder.Services.AddScoped<IEventHandler<SessionExpiredEvent>, SessionExpiredEventHandler>();
+
+builder.Services.AddScoped<IEventHandler<NewChunkUploadedEvent>, NewChunkUploadedEventHandler>();
 
 builder.Services.AddQuartz(q =>
 {
@@ -62,7 +83,41 @@ builder.Services.AddQuartz(q =>
         .WithSimpleSchedule(shedule =>
         {
             shedule
+            .WithIntervalInSeconds(60)
+            .WithMisfireHandlingInstructionNextWithRemainingCount()
+            .RepeatForever();
+        })
+        .StartNow();
+    });
+
+    q.AddJob<DeleteTimeoutUploadsJob>(opts =>
+    opts.WithIdentity("DeleteUpload", "Session")
+        .RequestRecovery());
+
+    q.AddTrigger(trigger =>
+    {
+        trigger.ForJob("DeleteUpload", "Session")
+        .WithSimpleSchedule(shedule =>
+        {
+            shedule
             .WithIntervalInSeconds(15)
+            .WithMisfireHandlingInstructionNextWithRemainingCount()
+            .RepeatForever();
+        })
+        .StartNow();
+    });
+
+    q.AddJob<DeleteFilesWithoutReferencesJob>(opts =>
+    opts.WithIdentity("DeleteFiles", "Files")
+        .RequestRecovery());
+
+    q.AddTrigger(trigger =>
+    {
+        trigger.ForJob("DeleteFiles", "Files")
+        .WithSimpleSchedule(shedule =>
+        {
+            shedule
+            .WithIntervalInSeconds(60)
             .WithMisfireHandlingInstructionNextWithRemainingCount()
             .RepeatForever();
         })

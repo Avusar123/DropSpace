@@ -1,7 +1,7 @@
 ﻿using DropSpace.Models.Data;
 using DropSpace.Models.DTOs;
-using DropSpace.Providers;
-using DropSpace.Services;
+using DropSpace.Services.Interfaces;
+using DropSpace.Stores.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
@@ -9,9 +9,11 @@ namespace DropSpace.SignalRHubs
 {
 
     [Authorize]
-    public class SessionsHub(ISessionService sessionService, 
-        IInviteCodeProvider inviteCodeProvider,
-        IConnectionIdProvider connectionIdProvider) : Hub
+    public class SessionsHub(
+        ISessionService sessionService, 
+        IFileService fileService,
+        IInviteCodeStore inviteCodeStore,
+        IConnectionIdStore connectionIdStore) : Hub
     {
         public override async Task OnConnectedAsync()
         {
@@ -23,33 +25,44 @@ namespace DropSpace.SignalRHubs
                 return;
             }
 
-            await connectionIdProvider.SaveConnectionId(Context.UserIdentifier, Context.ConnectionId);
+            await connectionIdStore.SaveConnectionId(Context.UserIdentifier, Context.ConnectionId);
         }
 
         public override Task OnDisconnectedAsync(Exception? exception)
         {
-            inviteCodeProvider.RemoveUserId(Context.UserIdentifier!);
+            inviteCodeStore.RemoveUserId(Context.UserIdentifier!);
 
-            connectionIdProvider.Remove(Context.UserIdentifier!);
+            connectionIdStore.Remove(Context.UserIdentifier!);
 
             return Task.CompletedTask;
         }
 
-        public Task<List<SessionDto>> GetSessions()
+        public async Task<List<SessionDto>> GetSessions()
         {
-            return Task.FromResult(sessionService.GetAllSessions(Context.UserIdentifier!));
+            return await sessionService.GetAllSessions(Context.UserIdentifier!);
+        }
+
+        public async Task<List<FileModelDto>> GetFiles(Guid sessionId)
+        {
+            return await fileService.GetAllFiles(sessionId);
+        }
+
+        public async Task<List<PendingUploadModelDto>> GetUploads(Guid sessionId)
+        {
+            return await fileService.GetAllUploads(sessionId);
         }
 
         public async Task<string> RefreshCode()
         {
-            return await inviteCodeProvider.RefreshCode(Context.UserIdentifier!);
+            return await inviteCodeStore.RefreshCode(Context.UserIdentifier!);
         }
 
         public async Task<bool> SendInviteByCode(string code, string sessionId)
         {
             try
             {
-                var userId = await inviteCodeProvider.GetUserIdByCodeOrNull(code.ToUpper()) ?? throw new NullReferenceException("Пользователь не найден!");
+                var userId = await inviteCodeStore.GetUserIdByCodeOrNull(code.ToUpper()) 
+                    ?? throw new NullReferenceException("Пользователь не найден!");
 
                 var session = await sessionService.GetAsync(Guid.Parse(sessionId));
 
