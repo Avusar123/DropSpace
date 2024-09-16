@@ -68,11 +68,9 @@ namespace DropSpace.Controllers
 
             await userManager.AddToRoleAsync(identityuser, "PermanentUser");
 
-            await signInManager.SignInAsync(identityuser, true);
-
             model.ReturnUrl = SetIfNullReturnUrl(model.ReturnUrl);
 
-            return LocalRedirect(model.ReturnUrl);
+            return RedirectToAction("Login", new { returnUrl = model.ReturnUrl });
         }
 
 
@@ -92,7 +90,7 @@ namespace DropSpace.Controllers
             {
                 ModelState.AddModelError(string.Empty, INVALIDLOGGINGATTEMPTMESSAGE);
 
-                return View();
+                return View(model);
             }
 
             await signInManager.SignInWithClaimsAsync(user, null,

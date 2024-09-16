@@ -1,6 +1,6 @@
 ﻿using DropSpace.Models.Data;
 using DropSpace.Models.DTOs;
-using DropSpace.Services;
+using DropSpace.Services.Interfaces;
 using DropSpace.Stores.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
@@ -9,7 +9,9 @@ namespace DropSpace.SignalRHubs
 {
 
     [Authorize]
-    public class SessionsHub(ISessionService sessionService, 
+    public class SessionsHub(
+        ISessionService sessionService, 
+        IFileService fileService,
         IInviteCodeStore inviteCodeStore,
         IConnectionIdStore connectionIdStore) : Hub
     {
@@ -40,6 +42,16 @@ namespace DropSpace.SignalRHubs
             return await sessionService.GetAllSessions(Context.UserIdentifier!);
         }
 
+        public async Task<List<FileModelDto>> GetFiles(Guid sessionId)
+        {
+            return await fileService.GetAllFiles(sessionId);
+        }
+
+        public async Task<List<PendingUploadModelDto>> GetUploads(Guid sessionId)
+        {
+            return await fileService.GetAllUploads(sessionId);
+        }
+
         public async Task<string> RefreshCode()
         {
             return await inviteCodeStore.RefreshCode(Context.UserIdentifier!);
@@ -49,7 +61,8 @@ namespace DropSpace.SignalRHubs
         {
             try
             {
-                var userId = await inviteCodeStore.GetUserIdByCodeOrNull(code.ToUpper()) ?? throw new NullReferenceException("Пользователь не найден!");
+                var userId = await inviteCodeStore.GetUserIdByCodeOrNull(code.ToUpper()) 
+                    ?? throw new NullReferenceException("Пользователь не найден!");
 
                 var session = await sessionService.GetAsync(Guid.Parse(sessionId));
 
