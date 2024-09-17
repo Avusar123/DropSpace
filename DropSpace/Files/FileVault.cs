@@ -6,11 +6,11 @@ using System.Security.Cryptography;
 
 namespace DropSpace.Files
 {
-    public class FileSaver : IFileSaver
+    public class FileVault : IFileVault
     {
         private readonly string pathToFiles;
 
-        public FileSaver(IConfiguration configuration)
+        public FileVault(IConfiguration configuration)
         {
             pathToFiles = configuration.GetValue<string>("FilesDirPath")
                                     ?? throw new NullReferenceException("Путь не указан!");
@@ -23,6 +23,8 @@ namespace DropSpace.Files
 
         public Task<bool> CanFit(long size)
         {
+            DriveInfo[] driveInfos = DriveInfo.GetDrives();
+
             DriveInfo drive = new(Path.GetPathRoot(pathToFiles)!);
 
             return Task.FromResult(drive.TotalFreeSpace >= size);
@@ -45,6 +47,30 @@ namespace DropSpace.Files
             var files = Directory.GetFiles(pathToFiles);
 
             return Task.FromResult(files.Select(filePath => Path.GetFileName(filePath)).ToList());
+        }
+
+        public async Task<byte[]> GetFileChunk(string hash, long startWith, long size)
+        {
+            int bytesRead;
+            int allbytes = 0;
+            var fileStream = await GetFileStream(hash, FileMode.Open);
+
+            byte[] buffer = new byte[4096];
+
+            using var memorystream = new MemoryStream();
+
+            fileStream.Position = startWith;
+
+            while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) > 0 && allbytes < size)
+            {
+                memorystream.Write(buffer, 0, bytesRead);
+
+                allbytes += bytesRead;
+            }
+
+            fileStream.Close();
+
+            return memorystream.ToArray();
         }
 
         public async Task<DateTime> GetFileCreatedTime(string hash)
@@ -97,7 +123,8 @@ namespace DropSpace.Files
         public async Task SaveData(string hash, Stream stream)
         {
             int bytesRead;
-            using var fileStream = await GetFileStream(hash, FileMode.Append);
+            var fileStream = await GetFileStream(hash, FileMode.Append);
+
             var length = (int)fileStream.Length;
 
             byte[] buffer = new byte[4096]; // Размер буфера (4 КБ)
@@ -109,9 +136,9 @@ namespace DropSpace.Files
                 fileStream.Write(buffer, 0, bytesRead);
             }
 
-            fileStream.Close();
-
             stream.Close();
+
+            fileStream.Close();
         }
     }
 }

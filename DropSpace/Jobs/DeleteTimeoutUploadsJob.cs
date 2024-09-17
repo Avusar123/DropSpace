@@ -10,7 +10,7 @@ namespace DropSpace.Jobs
 public class DeleteTimeoutUploadsJob(
     ApplicationContext applicationContext, 
     IEventTransmitter eventTransmitter,
-    IFileSaver fileSaver,
+    IFileVault fileSaver,
     IConfiguration configuration) : IJob
     {
         public async Task Execute(IJobExecutionContext context)

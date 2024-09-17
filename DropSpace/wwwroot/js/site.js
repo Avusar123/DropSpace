@@ -314,11 +314,8 @@ document.addEventListener('DOMContentLoaded', function () {
         return chunk;
     }
 
-    $("#fileInput").on("change", async function (ev) {
-        $("#fileInput").attr("disabled", true);
-        await onFileInputChange(ev)
-        $("#fileInput").val("");
-        $("#fileInput").attr("disabled", false);
+    $("#fileInput").on("change", function (ev) {
+        onFileInputChange(ev)
     })
 
     var files = document.querySelectorAll(".file");
@@ -381,6 +378,60 @@ document.querySelector("#file-delete").addEventListener("click", async function 
     })
 })
 
+if (document.querySelector("#file-download"))
+document.querySelector("#file-download").addEventListener("click", async function (ev) {
+    ev.preventDefault();
+
+    const sessionId = window.location.href.split('/').pop();
+
+    toggledFiles.forEach(async (fileId, index) => {
+
+        let response;
+
+        let fileData = [];
+
+        let start = 0;
+
+        fileResponse = await fetch(`/File?fileId=${fileId}`, {
+            method: 'GET'
+        })
+
+        const fileObj = await fileResponse.json();
+
+        do {
+            var formData = new FormData();
+
+            formData.append("sessionId", sessionId);
+
+            formData.append("fileId", fileId)
+
+            formData.append("startWith", start)
+
+            response = await fetch(`/File/Download`, {
+                method: 'POST',
+                body: formData
+            })
+
+            const chunk = await response.blob();
+            fileData.push(chunk);
+            start += chunk.size;
+
+        } while (start < fileObj.size)
+
+        const blob = new Blob(fileData);
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = fileObj.fileName;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(downloadUrl);
+        a.remove();
+
+        document.querySelector(`*[fileId="${fileId}"]`).click();
+    })
+})
+
 
 function countSesisonSize() {
     if (!document.querySelector("#session-size")) {
@@ -390,7 +441,7 @@ function countSesisonSize() {
     var sum = 0;
 
     $(".sended-size").each(function (ind, size) {
-        var value = parseInt(size.innerText); // Получаем текст из каждого <span> и преобразуем в число
+        var value = parseFloat(size.innerText); // Получаем текст из каждого <span> и преобразуем в число
         sum += value; // Добавляем к общей сумме
     });
 
@@ -496,7 +547,7 @@ async function updateFiles(connection) {
             const fileElement = $(`
                 <div class="file p-2 uploaded-file btn-dark btn d-flex flex-column align-items-center justify-content-center" fileId="${file.id}" style="border-radius: 15px; width: 150px; height: 200px;">
                     <div class="d-flex w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
-                        <p><span class="sended-size">${file.size}</span> <span class="subtitle" style="font-size: 0.7em; letter-spacing: 1px;">MB</span></p>
+                        <p><span class="sended-size">${file.sizeMb}</span> <span class="subtitle" style="font-size: 0.7em; letter-spacing: 1px;">MB</span></p>
                     </div>
                     <div class="d-flex w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
                         <i class="fa-regular fa-file" style="font-size: 6em"></i>

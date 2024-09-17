@@ -19,20 +19,25 @@ namespace DropSpace.Files
     public class FileFlowCoordinator : IFileFlowCoordinator
     {
         private readonly ISessionService sessionService;
-        private readonly IFileSaver fileSaver;
+        private readonly IFileVault fileVault;
         private readonly IPendingUploadStore pendingUploadStore;
         private readonly int chunkSize;
 
         public FileFlowCoordinator(
-            IConfiguration configuration, 
+            IConfiguration configuration,
             ISessionService sessionService,
-            IFileSaver fileSaver,
+            IFileVault fileVault,
             IPendingUploadStore pendingUploadStore)
         {
             this.chunkSize = configuration.GetValue<int>("ChunkSize");
             this.sessionService = sessionService;
-            this.fileSaver = fileSaver;
+            this.fileVault = fileVault;
             this.pendingUploadStore = pendingUploadStore;
+        }
+
+        public async Task<byte[]> GetChunkContent(string hash, long startWith)
+        {
+            return await fileVault.GetFileChunk(hash, startWith, chunkSize);
         }
 
         public async Task<PendingUploadModel> InitiateNewUpload(InitiateUploadModel initiateUploadModel)
@@ -40,18 +45,18 @@ namespace DropSpace.Files
             bool isCompleted = false;
 
             if (!await sessionService.CanSave(initiateUploadModel.SessionId, initiateUploadModel.Size) ||
-                !await fileSaver.CanFit(initiateUploadModel.Size))
+                !await fileVault.CanFit(initiateUploadModel.Size))
             {
                 throw new NotEnoughSpaceException(initiateUploadModel.Size);
             }
 
-            if (await fileSaver.ContainsFileWithHash(initiateUploadModel.Hash))
+            if (await fileVault.ContainsFileWithHash(initiateUploadModel.Hash))
             {
-                isCompleted = await fileSaver.IsFileCompleted(initiateUploadModel.Hash);
+                isCompleted = await fileVault.IsFileCompleted(initiateUploadModel.Hash);
 
                 if (!isCompleted)
                 {
-                    await fileSaver.DeleteAsync(initiateUploadModel.Hash);
+                    await fileVault.DeleteAsync(initiateUploadModel.Hash);
                 }
             }
 
@@ -77,7 +82,7 @@ namespace DropSpace.Files
             var upload = await pendingUploadStore.GetById(uploadChunk.UploadId);
 
             if (!await sessionService.CanSave(upload.SessionId, (int)uploadChunk.File.Length) ||
-                !await fileSaver.CanFit((int)uploadChunk.File.Length))
+                !await fileVault.CanFit((int)uploadChunk.File.Length))
             {
                 throw new NotEnoughSpaceException((int)uploadChunk.File.Length);
             }
@@ -93,7 +98,7 @@ namespace DropSpace.Files
 
             stream.Position = 0;
 
-            await fileSaver.SaveData(upload.FileHash, stream);
+            await fileVault.SaveData(upload.FileHash, stream);
 
             upload.SendedSize += uploadChunk.File.Length;
 
@@ -103,7 +108,7 @@ namespace DropSpace.Files
             {
                 await pendingUploadStore.DeleteAsync(upload.Id);
 
-                if (!await fileSaver.IsFileCompleted(upload.FileHash))
+                if (!await fileVault.IsFileCompleted(upload.FileHash))
                 {
                     throw new HashDoesNotMatch();
                 }
