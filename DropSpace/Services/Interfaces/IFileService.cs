@@ -16,6 +16,8 @@ namespace DropSpace.Services.Interfaces
 
         Task<PendingUploadModelDto> UploadNewChunk(UploadChunkModel uploadChunkModel);
 
+        Task<ChunkData> GetChunkData(DownloadChunkModel downloadChunkModel);
+
         Task Delete(Guid fileId, Guid sessionId);
     }
 }

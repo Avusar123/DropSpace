@@ -8,6 +8,7 @@ using DropSpace.Models.DTOs;
 using DropSpace.Services.Interfaces;
 using DropSpace.Stores.Interfaces;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.StaticFiles;
 
 namespace DropSpace.Services
 {
@@ -74,13 +75,33 @@ namespace DropSpace.Services
         {
             return (await fileStore.GetAll(sessionId))
                 .Select(file =>
-                        new FileModelDto(file.Id, file.ByteSize.ToMBytes(), file.FileName)).ToList();
+                        new FileModelDto(file.Id, file.ByteSize, file.ByteSize.ToMBytes(), file.FileName)).ToList();
         }
 
         public async Task<List<PendingUploadModelDto>> GetAllUploads(Guid sessionId)
         {
             return (await pendingUploadStore.GetAll(sessionId))
                 .Select(up => up.ToDto()).ToList();
+        }
+
+        public async Task<ChunkData> GetChunkData(DownloadChunkModel downloadChunkModel)
+        {
+            var file = await GetFile(downloadChunkModel.FileId);
+
+            var content = await fileCoordinator.GetChunkContent(file.FileHash, downloadChunkModel.StartWith);
+
+            var provider = new FileExtensionContentTypeProvider();
+
+            if (!provider.TryGetContentType(file.FileName, out var contentType))
+            {
+                contentType = "application/octet-stream";
+            }
+
+            return new ChunkData()
+            {
+                ContentType = contentType,
+                Content = content,
+            };
         }
 
         public async Task<FileModel> GetFile(Guid fileId)

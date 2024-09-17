@@ -8,6 +8,8 @@ namespace DropSpace.Files.Interfaces
     {
         Task<PendingUploadModel> InitiateNewUpload(InitiateUploadModel initiateUploadModel);
 
-        Task<PendingUploadModel> SaveNewChunk(UploadChunkModel uploadChunk);
+        Task<PendingUploadModel> SaveNewChunk(UploadChunkModel uploadChunsk);
+
+        Task<byte[]> GetChunkContent(string hash, long startWith);
     }
 }

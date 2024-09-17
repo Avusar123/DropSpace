@@ -32,43 +32,24 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-
 builder.Services.AddScoped<ClaimsFactory>();
-
 builder.Services.AddHostedService<DataSeed>();
-
 builder.Services.AddScoped<ISessionService, SessionService>();
-
 builder.Services.AddDbContext<ApplicationContext>(options => options.UseInMemoryDatabase("InMemory"));
-
 builder.Services.AddScoped<IAuthorizationHandler, MemberRequirementAuthorizationHandler>();
-
 builder.Services.AddScoped<IFileFlowCoordinator, FileFlowCoordinator>();
-
-builder.Services.AddSingleton<IFileSaver, FileSaver>();
-
+builder.Services.AddSingleton<IFileVault, FileVault>();
 builder.Services.AddSingleton<IInviteCodeStore, InMemoryInviteCodeStore>();
-
 builder.Services.AddScoped<ISessionStore, SessionStore>();
-
 builder.Services.AddScoped<IFileService, FileService>();
-
 builder.Services.AddScoped<IFileStore, FileStore>();
-
 builder.Services.AddScoped<IPendingUploadStore, PendingUploadStore>();
-
 builder.Services.AddSingleton<IConnectionIdStore, InMemoryConnectionIdStore>();
-
 builder.Services.AddSingleton<IEventTransmitter, EventTransmitter>();
-
 builder.Services.AddScoped<IEventHandler<UserJoinedEvent>, UserJoinedEventHandler>();
-
 builder.Services.AddScoped<IEventHandler<FileListChangedEvent>, FileListChangedEventHandler>();
-
 builder.Services.AddScoped<IEventHandler<UserLeftEvent>, UserLeftEventHandler>();
-
 builder.Services.AddScoped<IEventHandler<SessionExpiredEvent>, SessionExpiredEventHandler>();
-
 builder.Services.AddScoped<IEventHandler<NewChunkUploadedEvent>, NewChunkUploadedEventHandler>();
 
 builder.Services.AddQuartz(q =>
@@ -125,7 +106,6 @@ builder.Services.AddQuartz(q =>
     });
 });
 
-// ASP.NET Core hosting
 builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
 
 builder.Services.AddIdentity<IdentityUser, UserPlanRole>(options =>
