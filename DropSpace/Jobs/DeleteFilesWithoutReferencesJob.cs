@@ -4,7 +4,7 @@ using Quartz;
 namespace DropSpace.Jobs
 {
     public class DeleteFilesWithoutReferencesJob(
-        IFileSaver fileSaver,
+        IFileVault fileSaver,
         ApplicationContext applicationContext,
         IConfiguration configuration) : IJob
     {
