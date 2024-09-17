@@ -107,6 +107,14 @@ namespace DropSpace.Controllers
             return View(new LoginModel() { ReturnUrl = returnUrl});
         }
 
+        [HttpGet("Leave")]
+        public async Task<IActionResult> Leave()
+        {
+            await signInManager.SignOutAsync();
+
+            return RedirectToAction("Login", new {returnUrl = "/"});
+        }
+
 
         private string SetIfNullReturnUrl(string returnUrl)
         {

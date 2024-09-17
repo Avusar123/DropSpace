@@ -12,6 +12,28 @@ namespace DropSpace.Controllers
         IFileService fileService,
         IAuthorizationService authorizationService) : Controller
     {
+        [HttpDelete]
+        public async Task<ActionResult> Delete(DeleteFileModel deleteFileModel)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                await fileService.Delete(deleteFileModel.FileId, deleteFileModel.SessionId);
+            }
+            catch (Exception ex) 
+            {
+                return BadRequest(ex.Message);
+            }
+            
+
+            return Ok();
+        }
+
+
         [HttpPost]
         public async Task<ActionResult> CreateUpload(InitiateUploadModel initiateUploadModel)
         {

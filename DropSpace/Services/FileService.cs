@@ -47,18 +47,27 @@ namespace DropSpace.Services
                 {
                     UserIds = (await sessionStore
                                     .GetAsync(initiateNewUpload.SessionId))
-                                    .Members
-                                    .Select(m => m.UserId)
-                                    .ToList()
+                                    .GetMemberIds()
                 });
 
             return pendingUpload.ToDto();
             
         }
 
-        public async Task Delete(Guid fileId)
+        public async Task Delete(Guid fileId, Guid sessionId)
         {
-            await fileStore.Delete(fileId);
+            var session = await sessionStore.GetAsync(sessionId);
+
+            if (session.Files.Any(file => file.Id == fileId))
+            {
+                await fileStore.Delete(fileId);
+
+                await eventTransmitter.FireEvent(
+                    new FileListChangedEvent()
+                    {
+                        UserIds = session.GetMemberIds()
+                    });
+            }
         }
 
         public async Task<List<FileModelDto>> GetAllFiles(Guid sessionId)
@@ -100,9 +109,7 @@ namespace DropSpace.Services
                     {
                         UserIds = (await sessionStore
                                         .GetAsync(pendingUpload.SessionId))
-                                        .Members
-                                        .Select(m => m.UserId)
-                                        .ToList()
+                                        .GetMemberIds()
                     });
             }
             else
@@ -112,9 +119,9 @@ namespace DropSpace.Services
                     {
                         UserIds = (await sessionStore
                                         .GetAsync(pendingUpload.SessionId))
-                                        .Members
-                                        .Select(m => m.UserId)
-                                        .ToList(),
+                                        .GetMemberIds(),
+
+
                         Upload = pendingUpload.ToDto()
                     });
             }

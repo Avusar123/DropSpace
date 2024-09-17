@@ -1,8 +1,10 @@
-﻿var toggledButtons = [];
+﻿var toggledFiles = [];
 
 const filesoffcanvas = document.getElementById("filesActionsNavbar");
 
 const filesCounter = document.getElementById("files-counter")
+
+const hostName = window.location.href.split("/")[2];
 
 const leaveButton = document.getElementById("leave-button")
 
@@ -239,7 +241,6 @@ document.addEventListener('DOMContentLoaded', function () {
     async function onFileInputChange(ev) {
         const url = window.location.href;
         const SessionId = url.split('/').pop();
-        const hostName = window.location.href.split("/")[2];
 
         for (var i = 0; i < ev.target.files.length; i++) {
             
@@ -316,6 +317,7 @@ document.addEventListener('DOMContentLoaded', function () {
     $("#fileInput").on("change", async function (ev) {
         $("#fileInput").attr("disabled", true);
         await onFileInputChange(ev)
+        $("#fileInput").val("");
         $("#fileInput").attr("disabled", false);
     })
 
@@ -330,11 +332,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
             new window.bootstrap.Button(file).toggle();
             if (event.target.closest(".file").getAttribute("fileid")) {
-                toggleArrayElement(toggledButtons, event.target.closest(".file").getAttribute("fileid"))
+                toggleArrayElement(toggledFiles, event.target.closest(".file").getAttribute("fileid"))
             }
 
             if (filesCounter) {
-                filesCounter.innerText = "Выбрано " + toggledButtons.length + " Файлов";
+                filesCounter.innerText = "Выбрано " + toggledFiles.length + " Файлов";
             }
 
             if (!filesoffcanvasObj && filesoffcanvas) {
@@ -342,7 +344,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             if (filesoffcanvas) {
-                if (toggledButtons.length > 0) {
+                if (toggledFiles.length > 0) {
                     filesoffcanvasObj.show();
                 } else {
                     filesoffcanvasObj.hide();
@@ -351,6 +353,33 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     })
 });
+
+if (document.querySelector("#file-delete"))
+document.querySelector("#file-delete").addEventListener("click", async function (ev) {
+    ev.preventDefault();
+
+    const sessionId = window.location.href.split('/').pop();
+
+    toggledFiles.forEach(async (fileId, index) => {
+
+        var formData = new FormData();
+
+        formData.append("sessionId", sessionId);
+
+        formData.append("fileId", fileId)
+
+        responce = await fetch(`/File/`, {
+            method: 'DELETE',
+            body: formData
+        })
+
+        if (index == toggledFiles.length - 1) {
+            toggledFiles = [];
+
+            filesoffcanvasObj.hide();
+        }
+    })
+})
 
 
 function countSesisonSize() {
@@ -482,11 +511,11 @@ async function updateFiles(connection) {
             fileElement.on("click", function (event) {
                 new window.bootstrap.Button(fileElement).toggle();
                 if (event.target.closest(".file").getAttribute("fileid")) {
-                    toggleArrayElement(toggledButtons, event.target.closest(".file").getAttribute("fileid"))
+                    toggleArrayElement(toggledFiles, event.target.closest(".file").getAttribute("fileid"))
                 }
 
                 if (filesCounter) {
-                    filesCounter.innerText = "Выбрано " + toggledButtons.length + " Файлов";
+                    filesCounter.innerText = "Выбрано " + toggledFiles.length + " Файлов";
                 }
 
                 if (!filesoffcanvasObj && filesoffcanvas) {
@@ -494,7 +523,7 @@ async function updateFiles(connection) {
                 }
 
                 if (filesoffcanvas) {
-                    if (toggledButtons.length > 0) {
+                    if (toggledFiles.length > 0) {
                         filesoffcanvasObj.show();
                     } else {
                         filesoffcanvasObj.hide();
