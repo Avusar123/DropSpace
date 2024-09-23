@@ -12,7 +12,7 @@
 
         Task<bool> IsFileCompleted(string hash);
 
-        Task<FileStream> GetFileStream(string hash, FileMode fileMode); 
+        Task<FileStream> GetFileStream(string hash, FileMode fileMode);
 
         Task DeleteAsync(string hash);
 

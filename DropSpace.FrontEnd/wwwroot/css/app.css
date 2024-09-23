@@ -30,8 +30,8 @@ body {
 
 .subtitle {
     color: gray;
-    letter-spacing: 0.5em;
-    font-size: 0.75em
+    letter-spacing: 0.2em;
+    font-size: 1.2em
 }
 
 .fullscreen {
@@ -45,9 +45,12 @@ body {
     font-family: "Bebas Neue";
     font-weight: 500;
     font-style: normal;
-    color: #6098f5;
     transition: all 0.3s;
-    font-size: 2em;
+    font-size: 1.5em;
+}
+
+.navbar-brand:hover {
+    opacity: 0.9;
 }
 
 .footer {
@@ -67,7 +70,7 @@ body {
         position: absolute;
         width: 45%;
         height: 2px;
-        background: white;
+        background-color: black;
     }
 
     #or span::before {
@@ -93,4 +96,48 @@ body {
     gap: 0.5em;
     justify-content: center;
     align-items: center;
+}
+
+
+.nav-link {
+    color: rgb(236, 236, 236) !important;
+}
+
+a {
+    color: inherit;
+}
+
+.nav-link:hover {
+    background-color: rgba(255,255,255, 0.1)
+}
+
+.active {
+    color: white;
+    background-color: rgba(255,255,255, 0.2) !important;
+}
+
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-nav {
+    padding: 1em 0;
+}
+
+.btn-dark:hover {
+    background-color: rgba(255,255,255, 0.1)
+}
+
+.top-row {
+    height: 75px;
+}
+
+.file {
+    border-radius: 15px !important;
+    border-style: dashed !important;
+    border-width: 5px !important;
+    width: 150px;
+    height: 200px
 }

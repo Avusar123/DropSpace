@@ -1,38 +1,30 @@
 ﻿<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">DropSpace.FrontEnd</a>
+        <a class="navbar-brand text-primary" href="">DROPSPACE</a>
         <button title="Navigation menu" data-bs-toggle="collapse" data-bs-target="#collapseNav" class="navbar-toggler">
             <span class="navbar-toggler-icon"></span>
         </button>
     </div>
 </div>
-<div id="collapseNav" class="nav-scrollable">
-    <nav class="flex-column">
+<div id="collapseNav" class="collapse show nav-scrollable flex-grow-1 flex-column">
+    <nav class="d-flex flex-column sidebar-nav flex-grow-1">
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
+            <NavLink class="nav-link fs-6" href="session/b1d2857b-f619-4b48-92d1-8f5b7b13a5d4">
+                Новая сессия
             </NavLink>
         </div>
     </nav>
+    <div class="text-white p-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <p class="subtitle m-0"><span id="sessionsCounter">0</span> / 0</p>
+            <i class="fa-solid fa-right-from-bracket btn btn-dark"></i>
+        </div>
+
+        <div>
+            <hr />
+            <button type="button" class="btn btn-dark w-100">
+                Добавить сессию
+            </button>
+        </div>
+    </div>
 </div>
-
-@code {
-    private bool collapseNavMenu = true;
-
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-
-    private void ToggleNavMenu()
-    {
-        collapseNavMenu = !collapseNavMenu;
-    }
-}

@@ -23,7 +23,7 @@ namespace DropSpace.Stores
         {
             var upload = applicationContext.PendingUploads.FirstOrDefault(x => x.Id == id);
 
-            if (upload != null) 
+            if (upload != null)
             {
                 applicationContext.Remove(upload);
             }

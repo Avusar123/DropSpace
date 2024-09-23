@@ -22,7 +22,7 @@ namespace DropSpace.Stores
         {
             var file = applicationContext.Files.SingleOrDefault(f => f.Id == id);
 
-            if (file != null) 
+            if (file != null)
             {
                 applicationContext.Files.Remove(file);
             }

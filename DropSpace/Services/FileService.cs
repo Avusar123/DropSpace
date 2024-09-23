@@ -1,13 +1,12 @@
-﻿using DropSpace.Events.Events;
+﻿using DropSpace.Contracts.Dtos;
+using DropSpace.Events.Events;
 using DropSpace.Events.Interfaces;
 using DropSpace.Extensions;
 using DropSpace.Files.Interfaces;
 using DropSpace.Models;
 using DropSpace.Models.Data;
-using DropSpace.Models.DTOs;
 using DropSpace.Services.Interfaces;
 using DropSpace.Stores.Interfaces;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.StaticFiles;
 
 namespace DropSpace.Services
@@ -52,7 +51,7 @@ namespace DropSpace.Services
                 });
 
             return pendingUpload.ToDto();
-            
+
         }
 
         public async Task Delete(Guid fileId, Guid sessionId)

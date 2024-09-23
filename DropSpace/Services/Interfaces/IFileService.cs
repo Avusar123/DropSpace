@@ -1,6 +1,6 @@
-﻿using DropSpace.Models;
+﻿using DropSpace.Contracts.Dtos;
+using DropSpace.Models;
 using DropSpace.Models.Data;
-using DropSpace.Models.DTOs;
 
 namespace DropSpace.Services.Interfaces
 {

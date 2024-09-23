@@ -1,5 +1,4 @@
-﻿using DropSpace.Models.Data;
-using DropSpace.Models.DTOs;
+﻿using DropSpace.Contracts.Dtos;
 using DropSpace.Services.Interfaces;
 using DropSpace.Stores.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -10,15 +9,15 @@ namespace DropSpace.SignalRHubs
 
     [Authorize]
     public class SessionsHub(
-        ISessionService sessionService, 
+        ISessionService sessionService,
         IFileService fileService,
         IInviteCodeStore inviteCodeStore,
         IConnectionIdStore connectionIdStore) : Hub
     {
         public override async Task OnConnectedAsync()
         {
-            
-            if (Context.UserIdentifier == null) 
+
+            if (Context.UserIdentifier == null)
             {
                 Context.Abort();
 
@@ -61,7 +60,7 @@ namespace DropSpace.SignalRHubs
         {
             try
             {
-                var userId = await inviteCodeStore.GetUserIdByCodeOrNull(code.ToUpper()) 
+                var userId = await inviteCodeStore.GetUserIdByCodeOrNull(code.ToUpper())
                     ?? throw new NullReferenceException("Пользователь не найден!");
 
                 var session = await sessionService.GetAsync(Guid.Parse(sessionId));
@@ -69,7 +68,8 @@ namespace DropSpace.SignalRHubs
                 await Clients.User(userId).SendAsync("NewInvite", session.Name, session.Id);
 
                 return true;
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 await Clients.Caller.SendAsync("ErrorRecieved", ex.Message);
 

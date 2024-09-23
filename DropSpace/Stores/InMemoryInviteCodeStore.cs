@@ -19,7 +19,8 @@ namespace DropSpace.Providers
             if (History.TryGetValue(code, out DateTime value) && DateTime.Now - value < TimeSpan.FromMinutes(5))
             {
                 throw new ArgumentException("По этому коду уже отправлено приглашение, подождите пару минут перед повторной отправкой!");
-            } else
+            }
+            else
             {
                 History[code] = DateTime.Now;
             }

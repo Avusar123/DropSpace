@@ -1,19 +1,15 @@
-﻿using DropSpace.Events.Events;
+﻿using DropSpace.Contracts.Dtos;
+using DropSpace.Events.Events;
 using DropSpace.Events.Interfaces;
 using DropSpace.Models.Data;
-using DropSpace.Models.DTOs;
-using DropSpace.Providers;
 using DropSpace.Services.Interfaces;
-using DropSpace.SignalRHubs;
 using DropSpace.Stores.Interfaces;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Authentication;
 using System.Security.Claims;
 namespace DropSpace.Services
 {
-    public class MaxSessionsLimitReached(int limit) 
+    public class MaxSessionsLimitReached(int limit)
         : Exception(string.Format("Лимит в {0} сессий превышен!", limit))
     {
     }
@@ -109,7 +105,8 @@ namespace DropSpace.Services
                 if (session.Members.Count == 0)
                 {
                     await Delete(key);
-                } else
+                }
+                else
                 {
                     await Update(session);
                 }
@@ -133,7 +130,7 @@ namespace DropSpace.Services
 
         public async Task Update(Session entity)
         {
-            await sessionStore.UpdateAsync (entity);
+            await sessionStore.UpdateAsync(entity);
         }
         public async Task<bool> CanSave(Guid sessionId, long size)
         {

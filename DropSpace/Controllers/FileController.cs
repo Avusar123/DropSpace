@@ -1,14 +1,10 @@
-﻿using DropSpace.Extensions;
+﻿using DropSpace.Contracts.Dtos;
+using DropSpace.Extensions;
 using DropSpace.Models;
-using DropSpace.Models.Data;
-using DropSpace.Models.DTOs;
 using DropSpace.Requirements;
 using DropSpace.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.StaticFiles;
-using Microsoft.CodeAnalysis;
-using System.Net.Mime;
 
 namespace DropSpace.Controllers
 {
@@ -29,11 +25,11 @@ namespace DropSpace.Controllers
             {
                 await fileService.Delete(deleteFileModel.FileId, deleteFileModel.SessionId);
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }
-            
+
 
             return Ok();
         }
@@ -58,7 +54,8 @@ namespace DropSpace.Controllers
             try
             {
                 return Json(await fileService.CreateUpload(initiateUploadModel));
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }
@@ -75,11 +72,12 @@ namespace DropSpace.Controllers
             try
             {
                 return Json(await fileService.UploadNewChunk(uploadChunk));
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }
-            
+
         }
 
         [HttpPost("Download")]
@@ -91,7 +89,7 @@ namespace DropSpace.Controllers
             }
 
             var data = await fileService.GetChunkData(downloadChunkModel);
-            
+
             return File(data.Content, data.ContentType);
         }
 
@@ -103,11 +101,12 @@ namespace DropSpace.Controllers
                 var file = await fileService.GetFile(fileId);
 
                 return Ok(new FileModelDto(file.Id, file.ByteSize, file.ByteSize.ToMBytes(), file.FileName));
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }
-            
+
         }
     }
 }

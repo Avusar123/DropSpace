@@ -1,7 +1,5 @@
 ﻿using DropSpace.Events.Events;
 using DropSpace.Events.Interfaces;
-using DropSpace.Models.DTOs;
-using DropSpace.Services;
 using DropSpace.SignalRHubs;
 using DropSpace.Stores.Interfaces;
 using Microsoft.AspNetCore.SignalR;

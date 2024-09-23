@@ -1,7 +1,22 @@
 ﻿@page "/"
-
+@inject NavigationManager navigation
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="d-flex flex-column align-items-center justify-content-center py-3">
+    <QRCode @ref="qrCodeComponent"/>
+    <h1 id="invite-code" class="invite-code" style="font-size: 3em; cursor: default;">123456</h1>
+    <p class="subtitle fs-5 p-3 text-center" style="letter-spacing: normal">Отсканируйте этот QR-код или используйте уникальный код ниже, чтобы войти в удаленную сессию.</p>
+</div>
 
-Welcome to your new app.
+
+@code {
+    private QRCode qrCodeComponent;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            qrCodeComponent.GenerateQRCode($"{navigation.BaseUri}/invite");
+        }
+    }
+}

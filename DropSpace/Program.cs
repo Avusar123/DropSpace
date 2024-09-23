@@ -15,18 +15,14 @@ using DropSpace.Services.Interfaces;
 using DropSpace.SignalRHubs;
 using DropSpace.Stores;
 using DropSpace.Stores.Interfaces;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Quartz;
-using Quartz.AspNetCore;
 using System.Security.Claims;
-using System.Text.Encodings.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,7 +50,7 @@ builder.Services.AddScoped<IEventHandler<NewChunkUploadedEvent>, NewChunkUploade
 
 builder.Services.AddQuartz(q =>
 {
-    q.AddJob<DeleteExpiredSessionsJob>(opts => 
+    q.AddJob<DeleteExpiredSessionsJob>(opts =>
     opts.WithIdentity("DeleteExpired", "Session")
         .RequestRecovery());
 

@@ -22,7 +22,7 @@ namespace DropSpace.Stores
         {
             var session = await applicationContext.Sessions.FirstOrDefaultAsync(s => s.Id == id);
 
-            if (session != null) 
+            if (session != null)
             {
                 applicationContext.Remove(session);
             }

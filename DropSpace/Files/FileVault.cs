@@ -1,7 +1,4 @@
-﻿using DropSpace.Extensions;
-using DropSpace.Files.Interfaces;
-using System;
-using System.IO;
+﻿using DropSpace.Files.Interfaces;
 using System.Security.Cryptography;
 
 namespace DropSpace.Files

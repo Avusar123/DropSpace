@@ -1,6 +1,5 @@
 ﻿using DropSpace.Models.Data;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
 namespace DropSpace.DataManagers
@@ -36,7 +35,7 @@ namespace DropSpace.DataManagers
                     new("maxFilesSize", userPlanRole.MaxSize.ToString())
                 ];
 
-            
+
 
             return claims;
         }

@@ -1,6 +1,4 @@
 ﻿using DropSpace.Models;
-using DropSpace.Models.Data;
-using DropSpace.Models.DTOs;
 using DropSpace.Requirements;
 using DropSpace.Services;
 using DropSpace.Services.Interfaces;
@@ -8,14 +6,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Authentication;
-using System.Security.Claims;
 
 namespace DropSpace.Controllers
 {
     [Route("Session")]
     [EnableRateLimiting("fixed")]
     [Authorize]
-    public class SessionController(ISessionService sessionService, 
+    public class SessionController(ISessionService sessionService,
         IAuthorizationService authorizationService) : Controller
     {
 
@@ -40,20 +37,23 @@ namespace DropSpace.Controllers
 
                 return View(session);
 
-            } catch (NullReferenceException)
+            }
+            catch (NullReferenceException)
             {
                 return Redirect("/");
 
-            } catch (AuthenticationException)
+            }
+            catch (AuthenticationException)
             {
                 return Challenge();
 
-            } catch (MaxSessionsLimitReached)
+            }
+            catch (MaxSessionsLimitReached)
             {
                 return View("LimitError");
             }
         }
-        
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> Create(CreateSessionViewModel createSessionModel)
@@ -62,7 +62,7 @@ namespace DropSpace.Controllers
             {
                 return BadRequest(ModelState);
             }
-            
+
             try
             {
                 var sessionDto = await sessionService.CreateFromPrincipalAsync(User, createSessionModel.Name);
@@ -71,7 +71,8 @@ namespace DropSpace.Controllers
 
                 return Json(sessionDto);
 
-            } catch (Exception er)
+            }
+            catch (Exception er)
             {
                 ModelState.AddModelError(string.Empty, er.Message);
 
@@ -85,11 +86,12 @@ namespace DropSpace.Controllers
             try
             {
                 await sessionService.LeaveSession(User, id);
-            } catch (AuthenticationException)
+            }
+            catch (AuthenticationException)
             {
                 return Challenge();
             }
-            
+
 
             return Redirect("/");
         }

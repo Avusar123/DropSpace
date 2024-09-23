@@ -17,7 +17,8 @@ namespace DropSpace.Providers
                 if (connectionIds.TryGetValue(userId, out var connId))
                 {
                     result.Add(connId);
-                } else
+                }
+                else
                 {
                     throw new NullReferenceException("Id соединения не найден");
                 }
@@ -34,7 +35,7 @@ namespace DropSpace.Providers
                 return Task.CompletedTask;
 
             connectionIds.Remove(connectionIds[pair.Key]);
-            
+
 
             return Task.CompletedTask;
         }

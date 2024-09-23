@@ -30,4 +30,8 @@
     </Content>
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\DropSpace.Contracts\DropSpace.Contracts.csproj" />
+  </ItemGroup>
+
 </Project>

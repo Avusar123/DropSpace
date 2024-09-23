@@ -1,5 +1,5 @@
-﻿using DropSpace.Models.Data;
-using DropSpace.Models.DTOs;
+﻿using DropSpace.Contracts.Dtos;
+using DropSpace.Models.Data;
 
 namespace DropSpace.Extensions
 {

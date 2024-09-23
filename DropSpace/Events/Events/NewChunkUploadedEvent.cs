@@ -1,5 +1,5 @@
-﻿using DropSpace.Events.Interfaces;
-using DropSpace.Models.DTOs;
+﻿using DropSpace.Contracts.Dtos;
+using DropSpace.Events.Interfaces;
 
 namespace DropSpace.Events.Events
 {

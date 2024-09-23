@@ -2,7 +2,6 @@
 using DropSpace.Files.Interfaces;
 using DropSpace.Models;
 using DropSpace.Models.Data;
-using DropSpace.Models.DTOs;
 using DropSpace.Services.Interfaces;
 using DropSpace.Stores.Interfaces;
 
@@ -114,8 +113,9 @@ namespace DropSpace.Files
                 }
 
                 upload.IsCompleted = true;
-                
-            } else
+
+            }
+            else
             {
                 await pendingUploadStore.UpdateAsync(upload);
             }

@@ -1,8 +1,6 @@
 ﻿using DropSpace.Models.Data;
-using DropSpace.Services;
 using DropSpace.Stores.Interfaces;
 using Microsoft.AspNetCore.Identity;
-using System.Security.Claims;
 
 namespace DropSpace
 {
@@ -46,10 +44,10 @@ namespace DropSpace
             if (userManager.Users.Count() == 0)
             {
 
-                var user = new IdentityUser() 
-                { 
-                    Email = "test@gmail.com", 
-                    UserName = "test@gmail.com" 
+                var user = new IdentityUser()
+                {
+                    Email = "test@gmail.com",
+                    UserName = "test@gmail.com"
                 };
 
 
@@ -77,7 +75,7 @@ namespace DropSpace
                     PendingUploads = [],
                     Name = "Test"
                 };
-                
+
                 await sessionStore.CreateAsync(session);
 
             }

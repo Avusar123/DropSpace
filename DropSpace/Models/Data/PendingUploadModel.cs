@@ -25,11 +25,11 @@
         public Session Session { get; set; }
 
         public PendingUploadModel(
-            Guid id, 
-            long byteSize, 
-            long chunkSize, 
-            string fileHash, 
-            string fileName, 
+            Guid id,
+            long byteSize,
+            long chunkSize,
+            string fileHash,
+            string fileName,
             Guid sessionId)
         {
             this.Id = id;

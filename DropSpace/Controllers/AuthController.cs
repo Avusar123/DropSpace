@@ -1,21 +1,15 @@
 ﻿using DropSpace.DataManagers;
 using DropSpace.Models;
 using DropSpace.Models.Data;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
-using System.Data;
-using System.Diagnostics.Metrics;
 using System.Security.Claims;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 namespace DropSpace.Controllers
 {
     [Route("Auth")]
-    public class AuthController(ClaimsFactory claimsFactory, 
-        SignInManager<IdentityUser> signInManager, 
+    public class AuthController(ClaimsFactory claimsFactory,
+        SignInManager<IdentityUser> signInManager,
         UserManager<IdentityUser> userManager,
         RoleManager<UserPlanRole> roleManager) : Controller
     {
@@ -30,9 +24,10 @@ namespace DropSpace.Controllers
 
             var principle = new ClaimsPrincipal(identity);
 
-            return SignIn(principle, 
-                new() { 
-                    RedirectUri = returnUrl, 
+            return SignIn(principle,
+                new()
+                {
+                    RedirectUri = returnUrl,
                     IsPersistent = true
                 },
                 CookieAuthenticationDefaults.AuthenticationScheme);
@@ -86,7 +81,7 @@ namespace DropSpace.Controllers
 
             var user = await userManager.FindByEmailAsync(model.Email);
 
-            if (user == null || !await userManager.CheckPasswordAsync(user, model.Password)) 
+            if (user == null || !await userManager.CheckPasswordAsync(user, model.Password))
             {
                 ModelState.AddModelError(string.Empty, INVALIDLOGGINGATTEMPTMESSAGE);
 
@@ -104,7 +99,7 @@ namespace DropSpace.Controllers
         [HttpGet("Login")]
         public IActionResult Login(string? returnUrl)
         {
-            return View(new LoginModel() { ReturnUrl = returnUrl});
+            return View(new LoginModel() { ReturnUrl = returnUrl });
         }
 
         [HttpGet("Leave")]
@@ -112,7 +107,7 @@ namespace DropSpace.Controllers
         {
             await signInManager.SignOutAsync();
 
-            return RedirectToAction("Login", new {returnUrl = "/"});
+            return RedirectToAction("Login", new { returnUrl = "/" });
         }
 
 
@@ -123,5 +118,5 @@ namespace DropSpace.Controllers
 
     }
 
-    
+
 }
