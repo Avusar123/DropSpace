@@ -1,3 +1,12 @@
+image: docker:24.0.2
+
+services:
+  - docker:24.0.2-dind
+
+variables:
+  DOCKER_HOST: tcp://docker:2375/
+  DOCKER_TLS_CERTDIR: ""
+
 stages:
   - test
   - delivery
@@ -6,7 +15,7 @@ test_job:
   stage: test
   script:
     - docker compose -f DropSpace/tests/docker-compose.yml down
-    - docker compose -f DropSpace/tests/docker-compose.yml up --build
+    - docker compose -f DropSpace/tests/docker-compose.yml build dropcontainer
     - docker compose -f DropSpace/tests/docker-compose.yml up
 
 deploy_job:
@@ -15,5 +24,5 @@ deploy_job:
     - master
   script:
     - docker login -p $DOCKER_REGISTRY_KEY -u "$DOCKER_REGISTRY_USER"
-    - docker tag dropcontainer:test $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
-    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+    - docker tag dropcontainer:test $CI_REGISTRY_IMAGE
+    - docker push $CI_REGISTRY_IMAGE
