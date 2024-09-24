@@ -23,7 +23,7 @@ deploy_job:
   stage: deploy
   script:
     - docker login -u "$DOCKER_HUB_USERNAME" -p "$DOCKER_HUB_ACCESS_TOKEN"
-    - docker tag web:latest $DOCKER_HUB_USERNAME/dropspacenginx:latest
+    - docker tag $DOCKER_HUB_USERNAME/dropspacenginx:latest $DOCKER_HUB_USERNAME/dropspacenginx:latest
     - docker push $DOCKER_HUB_USERNAME/dropspacenginx:latest
   only:
     - master

@@ -5,6 +5,8 @@ services:
     build:
       context: ../
       dockerfile: ../Dockerfile
-    command: bash -c "sleep 10 && dotnet test" 
+    image: $DOCKER_HUB_USERNAME/dropspacenginx:latest
+    command: bash -c "sleep 10 && dotnet test"
+
 
 #Потом можно будет добавить postgres, redis 
