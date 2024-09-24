@@ -19,13 +19,13 @@ jobs:
         dotnet-version: '7.x'
 
     - name: Install dependencies
-      run: dotnet restore 
+      run: dotnet restore "DropSpace/DropSpace.csproj"
 
     - name: Build the project
-      run: dotnet build --configuration Release --no-restore 
+      run: dotnet build "DropSpace/DropSpace.csproj" --configuration Release --no-restore 
 
     - name: Run tests
-      run: dotnet test --no-build --verbosity normal 
+      run: dotnet test "DropSpace/DropSpace.csproj" --no-build --verbosity normal 
 
   deploy:
     runs-on: ubuntu-latest
