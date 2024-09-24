@@ -4,9 +4,10 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 COPY ["DropSpace/DropSpace.csproj", "DropSpace/"]
+
 RUN dotnet restore "DropSpace/DropSpace.csproj"
 
-COPY ./DropSpace ./
+COPY DropSpace/ ./DropSpace/
 
 WORKDIR "/src/DropSpace"
 RUN dotnet build "DropSpace.csproj" -c Release -o /app/build
