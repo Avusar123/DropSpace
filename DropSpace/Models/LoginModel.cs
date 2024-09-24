@@ -13,7 +13,5 @@ namespace DropSpace.Models
         [PasswordPropertyText]
         [DataType(DataType.Password)]
         public string Password { get; set; }
-
-        public string? ReturnUrl { get; set; }
     }
 }

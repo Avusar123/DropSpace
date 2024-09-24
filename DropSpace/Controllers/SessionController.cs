@@ -55,7 +55,6 @@ namespace DropSpace.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<ActionResult> Create(CreateSessionViewModel createSessionModel)
         {
             if (!ModelState.IsValid)

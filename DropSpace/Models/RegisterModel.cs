@@ -14,12 +14,5 @@ namespace DropSpace.Models
         [DataType(DataType.Password)]
         [Display(Name = "Пароль")]
         public string Password { get; set; }
-
-        [DataType(DataType.Password)]
-        [Display(Name = "Подтверждение пароля")]
-        [Compare("Password", ErrorMessage = "Введенные пароли не совпадают!")]
-        public string ConfirmPassword { get; set; }
-
-        public string ReturnUrl { get; set; }
     }
 }

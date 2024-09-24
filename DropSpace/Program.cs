@@ -10,17 +10,20 @@ using DropSpace.Jobs;
 using DropSpace.Models.Data;
 using DropSpace.Providers;
 using DropSpace.Requirements;
+using DropSpace.RSAKeyProviders;
 using DropSpace.Services;
 using DropSpace.Services.Interfaces;
 using DropSpace.SignalRHubs;
 using DropSpace.Stores;
 using DropSpace.Stores.Interfaces;
-using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 using Quartz;
 using System.Security.Claims;
 
@@ -28,7 +31,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-builder.Services.AddScoped<ClaimsFactory>();
+builder.Services.AddScoped<JWTFactory>();
 builder.Services.AddHostedService<DataSeed>();
 builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddDbContext<ApplicationContext>(options => options.UseInMemoryDatabase("InMemory"));
@@ -47,6 +50,7 @@ builder.Services.AddScoped<IEventHandler<FileListChangedEvent>, FileListChangedE
 builder.Services.AddScoped<IEventHandler<UserLeftEvent>, UserLeftEventHandler>();
 builder.Services.AddScoped<IEventHandler<SessionExpiredEvent>, SessionExpiredEventHandler>();
 builder.Services.AddScoped<IEventHandler<NewChunkUploadedEvent>, NewChunkUploadedEventHandler>();
+builder.Services.AddSingleton<IRSAKeyProvider, RSAFromFileKeyProvider>();
 
 builder.Services.AddQuartz(q =>
 {
@@ -104,6 +108,35 @@ builder.Services.AddQuartz(q =>
 
 builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
 
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "¬ведите токен в формате: Bearer {токен}",
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
+});
+
+
 builder.Services.AddIdentity<IdentityUser, UserPlanRole>(options =>
 {
     options.Lockout.AllowedForNewUsers = false;
@@ -115,11 +148,6 @@ builder.Services.AddDataProtection()
             .PersistKeysToFileSystem(new DirectoryInfo(@"C:\keys\"))
             .SetApplicationName("DropSpace");
 
-builder.Services.ConfigureApplicationCookie(options =>
-{
-    options.ForwardSignIn = CookieAuthenticationDefaults.AuthenticationScheme;
-});
-
 builder.Services.AddRateLimiter(_ => _
     .AddFixedWindowLimiter(policyName: "fixed", options =>
     {
@@ -128,22 +156,21 @@ builder.Services.AddRateLimiter(_ => _
         options.QueueLimit = 2;
     }));
 
-
-builder.Services.AddAuthentication(
-        options =>
-        {
-            options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-            options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-            options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-        }
-    )
-    .AddScheme<CookieAuthenticationOptions, ChooseAuthenticationHandler>(CookieAuthenticationDefaults.AuthenticationScheme, options =>
-    {
-        options.LoginPath = "/Auth/Login";
-    });
-
-
 builder.Services.AddSignalR();
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+{
+    options.TokenValidationParameters = new()
+    {
+        ValidateAudience = false,
+        ValidateIssuer = false,
+        IssuerSigningKey = new RSAFromFileKeyProvider(builder.Configuration).GetKey()
+    };
+});
 
 builder.Services.AddAuthorization(options =>
 {
@@ -166,6 +193,14 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Error");
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
+} else
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "DropSpace");
+        c.RoutePrefix = string.Empty;
+    });
 }
 
 app.UseHttpsRedirection();
