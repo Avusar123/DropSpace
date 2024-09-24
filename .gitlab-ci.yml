@@ -1,15 +1,25 @@
+image: docker:latest
+
+services:
+  - docker:dind
+
+variables:
+  DOCKER_DRIVER: overlay2
+
 stages:
   - test
   - deploy
 
-test:
+test_job:
   stage: test
   script:
     - docker-compose -f DropSpace/tests/docker-compose.yml down
     - docker-compose -f DropSpace/tests/docker-compose.yml up -d --build
+    - sleep 20
+    - docker ps
     - docker-compose -f DropSpace/tests/docker-compose.yml down
 
-deploy:
+deploy_job:
   stage: deploy
   script:
     - docker login -u "$DOCKER_HUB_USERNAME" -p "$DOCKER_HUB_ACCESS_TOKEN"

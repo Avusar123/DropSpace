@@ -3,7 +3,7 @@ version: '3.8'
 services:
   web:
     build:
-      context: ..
+      context: ../
       dockerfile: ../Dockerfile
     command: bash -c "sleep 10 && dotnet test" 
 
