@@ -1,12 +1,13 @@
 version: '3.8'
 
 services:
-  web:
+  dropcontainer:
     build:
       context: ../
       dockerfile: ../Dockerfile
-    image: $DOCKER_HUB_USERNAME/dropspacenginx:latest
-    command: bash -c "sleep 10 && dotnet test"
+    image: dropcontainer:test
+    command: bash -c "dotnet test"
+
 
 
 #Потом можно будет добавить postgres, redis 

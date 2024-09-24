@@ -1,29 +1,19 @@
-image: docker:latest
-
-services:
-  - docker:dind
-
-variables:
-  DOCKER_DRIVER: overlay2
-
 stages:
   - test
-  - deploy
+  - delivery
 
 test_job:
   stage: test
   script:
-    - docker-compose -f DropSpace/tests/docker-compose.yml down
-    - docker-compose -f DropSpace/tests/docker-compose.yml up -d --build
-    - sleep 20
-    - docker ps
-    - docker-compose -f DropSpace/tests/docker-compose.yml down
+    - docker compose -f DropSpace/tests/docker-compose.yml down
+    - docker compose -f DropSpace/tests/docker-compose.yml up --build
+    - docker compose -f DropSpace/tests/docker-compose.yml up
 
 deploy_job:
-  stage: deploy
-  script:
-    - docker login -u "$DOCKER_HUB_USERNAME" -p "$DOCKER_HUB_ACCESS_TOKEN"
-    - docker tag $DOCKER_HUB_USERNAME/dropspacenginx:latest $DOCKER_HUB_USERNAME/dropspacenginx:latest
-    - docker push $DOCKER_HUB_USERNAME/dropspacenginx:latest
+  stage: delivery
   only:
     - master
+  script:
+    - docker login -p $DOCKER_REGISTRY_KEY -u "$DOCKER_REGISTRY_USER"
+    - docker tag dropcontainer:test $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
