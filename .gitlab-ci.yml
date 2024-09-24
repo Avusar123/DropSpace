@@ -1,0 +1,19 @@
+stages:
+  - test
+  - deploy
+
+test:
+  stage: test
+  script:
+    - docker-compose -f DropSpace/tests/docker-compose.yml down
+    - docker-compose -f DropSpace/tests/docker-compose.yml up -d --build
+    - docker-compose -f DropSpace/tests/docker-compose.yml down
+
+deploy:
+  stage: deploy
+  script:
+    - docker login -u "$DOCKER_HUB_USERNAME" -p "$DOCKER_HUB_ACCESS_TOKEN"
+    - docker tag web:latest $DOCKER_HUB_USERNAME/dropspace:latest
+    - docker push $DOCKER_HUB_USERNAME/dropspace:latest
+  only:
+    - master
