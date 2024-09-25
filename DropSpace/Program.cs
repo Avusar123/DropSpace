@@ -87,23 +87,6 @@ builder.Services.AddQuartz(q =>
         })
         .StartNow();
     });
-
-    q.AddJob<DeleteFilesWithoutReferencesJob>(opts =>
-    opts.WithIdentity("DeleteFiles", "Files")
-        .RequestRecovery());
-
-    q.AddTrigger(trigger =>
-    {
-        trigger.ForJob("DeleteFiles", "Files")
-        .WithSimpleSchedule(shedule =>
-        {
-            shedule
-            .WithIntervalInSeconds(60)
-            .WithMisfireHandlingInstructionNextWithRemainingCount()
-            .RepeatForever();
-        })
-        .StartNow();
-    });
 });
 
 builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);

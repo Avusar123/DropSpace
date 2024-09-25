@@ -9,9 +9,6 @@ namespace DropSpace.Models
         public long Size { get; set; }
 
         [Required]
-        public string Hash { get; set; }
-
-        [Required]
         public string Name { get; set; }
 
         [Required]

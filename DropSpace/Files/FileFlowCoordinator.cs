@@ -41,7 +41,6 @@ namespace DropSpace.Files
 
         public async Task<PendingUploadModel> InitiateNewUpload(InitiateUploadModel initiateUploadModel)
         {
-            bool isCompleted = false;
 
             if (!await sessionService.CanSave(initiateUploadModel.SessionId, initiateUploadModel.Size) ||
                 !await fileVault.CanFit(initiateUploadModel.Size))
@@ -49,29 +48,16 @@ namespace DropSpace.Files
                 throw new NotEnoughSpaceException(initiateUploadModel.Size);
             }
 
-            if (await fileVault.ContainsFileWithHash(initiateUploadModel.Hash))
-            {
-                isCompleted = await fileVault.IsFileCompleted(initiateUploadModel.Hash);
-
-                if (!isCompleted)
-                {
-                    await fileVault.DeleteAsync(initiateUploadModel.Hash);
-                }
-            }
-
             var pendingupload = new PendingUploadModel
-                (
-                    Guid.NewGuid(),
-                    initiateUploadModel.Size,
-                    chunkSize,
-                    initiateUploadModel.Hash,
-                    initiateUploadModel.Name,
-                    initiateUploadModel.SessionId
-                )
-            { IsCompleted = isCompleted };
+            (
+                Guid.NewGuid(),
+                initiateUploadModel.Size,
+                chunkSize,
+                initiateUploadModel.Name,
+                initiateUploadModel.SessionId
+            );
 
-            if (!isCompleted)
-                await pendingUploadStore.CreateAsync(pendingupload);
+            await pendingUploadStore.CreateAsync(pendingupload);
 
             return pendingupload;
         }
@@ -97,7 +83,7 @@ namespace DropSpace.Files
 
             stream.Position = 0;
 
-            await fileVault.SaveData(upload.FileHash, stream);
+            await fileVault.SaveData(upload.Id.ToString(), stream);
 
             upload.SendedSize += uploadChunk.File.Length;
 
@@ -107,13 +93,7 @@ namespace DropSpace.Files
             {
                 await pendingUploadStore.DeleteAsync(upload.Id);
 
-                if (!await fileVault.IsFileCompleted(upload.FileHash))
-                {
-                    throw new HashDoesNotMatch();
-                }
-
                 upload.IsCompleted = true;
-
             }
             else
             {

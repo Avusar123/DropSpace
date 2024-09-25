@@ -16,8 +16,6 @@
 
         public long ChunkSize { get; set; }
 
-        public string FileHash { get; set; }
-
         public string FileName { get; set; }
 
         public Guid SessionId { get; set; }
@@ -28,14 +26,12 @@
             Guid id,
             long byteSize,
             long chunkSize,
-            string fileHash,
             string fileName,
             Guid sessionId)
         {
             this.Id = id;
             this.ByteSize = byteSize;
             this.ChunkSize = chunkSize;
-            this.FileHash = fileHash;
             this.FileName = fileName;
             this.SessionId = sessionId;
             IsCompleted = false;

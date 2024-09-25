@@ -22,26 +22,6 @@ namespace DropSpace.Services
         {
             var pendingUpload = await fileCoordinator.InitiateNewUpload(initiateNewUpload);
 
-            if (pendingUpload.IsCompleted)
-            {
-                var files = await fileStore.GetAll(initiateNewUpload.SessionId);
-
-                if (files.FirstOrDefault(file => file.FileHash == initiateNewUpload.Hash) == null)
-                {
-                    var fileModel = new FileModel()
-                    {
-                        FileHash = pendingUpload.FileHash,
-                        FileName = pendingUpload.FileName,
-                        ByteSize = pendingUpload.ByteSize,
-                        SessionId = pendingUpload.SessionId
-                    };
-
-                    await fileStore.CreateAsync(fileModel);
-                }
-            }
-
-
-
             await eventTransmitter.FireEvent(
                 new FileListChangedEvent()
                 {
@@ -87,7 +67,7 @@ namespace DropSpace.Services
         {
             var file = await GetFile(downloadChunkModel.FileId);
 
-            var content = await fileCoordinator.GetChunkContent(file.FileHash, downloadChunkModel.StartWith);
+            var content = await fileCoordinator.GetChunkContent(downloadChunkModel.FileId.ToString(), downloadChunkModel.StartWith);
 
             var provider = new FileExtensionContentTypeProvider();
 
@@ -116,7 +96,7 @@ namespace DropSpace.Services
             {
                 var fileModel = new FileModel()
                 {
-                    FileHash = pendingUpload.FileHash,
+                    Id = pendingUpload.Id,
                     FileName = pendingUpload.FileName,
                     ByteSize = pendingUpload.ByteSize,
                     SessionId = pendingUpload.SessionId

@@ -1,4 +1,5 @@
-﻿using DropSpace.Models;
+﻿using DropSpace.Extensions;
+using DropSpace.Models;
 using DropSpace.Requirements;
 using DropSpace.Services;
 using DropSpace.Services.Interfaces;
@@ -13,7 +14,7 @@ namespace DropSpace.Controllers
     [EnableRateLimiting("fixed")]
     [Authorize]
     public class SessionController(ISessionService sessionService,
-        IAuthorizationService authorizationService) : Controller
+        IAuthorizationService authorizationService) : ControllerBase
     {
 
         [HttpGet("{id}")]
@@ -25,7 +26,7 @@ namespace DropSpace.Controllers
 
                 if (session.Created + session.Duration < DateTime.Now)
                 {
-                    return Redirect("/");
+                    return NotFound();
                 }
 
                 var result = await authorizationService.AuthorizeAsync(User, session.Id, new MemberRequirement());
@@ -35,22 +36,12 @@ namespace DropSpace.Controllers
                     await sessionService.JoinSession(User, id);
                 }
 
-                return View(session);
-
-            }
-            catch (NullReferenceException)
-            {
-                return Redirect("/");
+                return Ok(session.ToDto());
 
             }
             catch (AuthenticationException)
             {
                 return Challenge();
-
-            }
-            catch (MaxSessionsLimitReached)
-            {
-                return View("LimitError");
             }
         }
 
@@ -68,7 +59,7 @@ namespace DropSpace.Controllers
 
                 var member = await sessionService.JoinSession(User, sessionDto.Id);
 
-                return Json(sessionDto);
+                return Ok(sessionDto);
 
             }
             catch (Exception er)
@@ -85,23 +76,13 @@ namespace DropSpace.Controllers
             try
             {
                 await sessionService.LeaveSession(User, id);
+
+                return Ok();
             }
             catch (AuthenticationException)
             {
                 return Challenge();
             }
-
-
-            return Redirect("/");
-        }
-
-        [HttpGet("Invite")]
-        public async Task<ActionResult> Invite(string code)
-        {
-            if (code == null)
-                return Redirect("/");
-
-            return View();
         }
     }
 }

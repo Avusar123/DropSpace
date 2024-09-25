@@ -9,7 +9,8 @@ namespace DropSpace.Stores
     {
         public async Task<Guid> CreateAsync(FileModel fileModel)
         {
-            fileModel.Id = Guid.NewGuid();
+            if (fileModel.Id == Guid.Empty)
+                fileModel.Id = Guid.NewGuid();
 
             applicationContext.Files.Add(fileModel);
 

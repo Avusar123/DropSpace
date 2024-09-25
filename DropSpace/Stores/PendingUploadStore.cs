@@ -8,7 +8,8 @@ namespace DropSpace.Stores
     {
         public async Task<Guid> CreateAsync(PendingUploadModel model)
         {
-            model.Id = Guid.NewGuid();
+            if (model.Id == Guid.Empty)
+                model.Id = Guid.NewGuid();
 
             model.LastChunkUploaded = DateTime.Now;
 

@@ -11,7 +11,7 @@ namespace DropSpace.Controllers
     [Route("File")]
     public class FileController(
         IFileService fileService,
-        IAuthorizationService authorizationService) : Controller
+        IAuthorizationService authorizationService) : ControllerBase
     {
         [HttpDelete]
         public async Task<ActionResult> Delete(DeleteFileModel deleteFileModel)
@@ -53,7 +53,7 @@ namespace DropSpace.Controllers
 
             try
             {
-                return Json(await fileService.CreateUpload(initiateUploadModel));
+                return Ok(await fileService.CreateUpload(initiateUploadModel));
             }
             catch (Exception ex)
             {
@@ -71,7 +71,7 @@ namespace DropSpace.Controllers
 
             try
             {
-                return Json(await fileService.UploadNewChunk(uploadChunk));
+                return Ok(await fileService.UploadNewChunk(uploadChunk));
             }
             catch (Exception ex)
             {
@@ -93,7 +93,7 @@ namespace DropSpace.Controllers
             return File(data.Content, data.ContentType);
         }
 
-        [HttpGet]
+        [HttpGet("{fileId}")]
         public async Task<ActionResult> GetFileInfo(Guid fileId)
         {
             try

@@ -8,8 +8,6 @@
 
         public string FileName { get; set; }
 
-        public string FileHash { get; set; }
-
         public Guid SessionId { get; set; }
     }
 }

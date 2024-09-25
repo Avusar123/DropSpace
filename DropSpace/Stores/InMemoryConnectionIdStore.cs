@@ -18,10 +18,6 @@ namespace DropSpace.Providers
                 {
                     result.Add(connId);
                 }
-                else
-                {
-                    throw new NullReferenceException("Id соединения не найден");
-                }
             }
 
             return Task.FromResult(result);

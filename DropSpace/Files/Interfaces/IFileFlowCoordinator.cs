@@ -9,6 +9,6 @@ namespace DropSpace.Files.Interfaces
 
         Task<PendingUploadModel> SaveNewChunk(UploadChunkModel uploadChunsk);
 
-        Task<byte[]> GetChunkContent(string hash, long startWith);
+        Task<byte[]> GetChunkContent(string fileId, long startWith);
     }
 }
