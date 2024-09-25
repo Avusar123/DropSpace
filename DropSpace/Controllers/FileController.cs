@@ -34,6 +34,29 @@ namespace DropSpace.Controllers
             return Ok();
         }
 
+        [HttpGet("All/{sessionId}")]
+        public async Task<ActionResult<List<FileModelDto>>> GetAll(Guid sessionId)
+        {
+            var authresult = await authorizationService
+                .AuthorizeAsync(User, sessionId, new MemberRequirement());
+
+            if (!authresult.Succeeded)
+            {
+                return Forbid();
+            }
+
+
+            try
+            {
+                return await fileService.GetAllFiles(sessionId);
+            }
+            catch (Exception er)
+            {
+                ModelState.AddModelError(string.Empty, er.Message);
+
+                return BadRequest(ModelState);
+            }
+        }
 
         [HttpPost]
         public async Task<ActionResult> CreateUpload(InitiateUploadModel initiateUploadModel)
@@ -80,17 +103,31 @@ namespace DropSpace.Controllers
 
         }
 
-        [HttpPost("Download")]
+        [HttpGet("Download")]
         public async Task<ActionResult> DownloadFileChunk(DownloadChunkModel downloadChunkModel)
         {
-            if (!ModelState.IsValid)
+            try
             {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var data = await fileService.GetChunkData(downloadChunkModel);
+
+                return File(data.Content, data.ContentType);
+            }
+            catch (NullReferenceException)
+            {
+                return NotFound(downloadChunkModel.FileId);
+            }
+            catch (Exception er)
+            {
+                ModelState.AddModelError(string.Empty, er.Message);
+
                 return BadRequest(ModelState);
             }
 
-            var data = await fileService.GetChunkData(downloadChunkModel);
-
-            return File(data.Content, data.ContentType);
         }
 
         [HttpGet("{fileId}")]
@@ -101,6 +138,10 @@ namespace DropSpace.Controllers
                 var file = await fileService.GetFile(fileId);
 
                 return Ok(new FileModelDto(file.Id, file.ByteSize, file.ByteSize.ToMBytes(), file.FileName));
+            }
+            catch (NullReferenceException)
+            {
+                return NotFound(fileId);
             }
             catch (Exception ex)
             {

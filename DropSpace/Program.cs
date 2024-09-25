@@ -46,9 +46,7 @@ builder.Services.AddScoped<IPendingUploadStore, PendingUploadStore>();
 builder.Services.AddSingleton<IConnectionIdStore, InMemoryConnectionIdStore>();
 builder.Services.AddSingleton<IEventTransmitter, EventTransmitter>();
 builder.Services.AddScoped<IEventHandler<UserJoinedEvent>, UserJoinedEventHandler>();
-builder.Services.AddScoped<IEventHandler<FileListChangedEvent>, FileListChangedEventHandler>();
 builder.Services.AddScoped<IEventHandler<UserLeftEvent>, UserLeftEventHandler>();
-builder.Services.AddScoped<IEventHandler<SessionExpiredEvent>, SessionExpiredEventHandler>();
 builder.Services.AddScoped<IEventHandler<NewChunkUploadedEvent>, NewChunkUploadedEventHandler>();
 builder.Services.AddSingleton<IRSAKeyProvider, RSAFromFileKeyProvider>();
 

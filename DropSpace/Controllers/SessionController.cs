@@ -1,4 +1,5 @@
-﻿using DropSpace.Extensions;
+﻿using DropSpace.Contracts.Dtos;
+using DropSpace.Extensions;
 using DropSpace.Models;
 using DropSpace.Requirements;
 using DropSpace.Services;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Authentication;
+using System.Security.Claims;
 
 namespace DropSpace.Controllers
 {
@@ -39,9 +41,34 @@ namespace DropSpace.Controllers
                 return Ok(session.ToDto());
 
             }
+            catch (NullReferenceException)
+            {
+                return NotFound(id);
+            }
             catch (AuthenticationException)
             {
                 return Challenge();
+            }
+            catch (Exception er)
+            {
+                ModelState.AddModelError(string.Empty, er.Message);
+
+                return BadRequest(ModelState);
+            }
+        }
+
+        [HttpGet("All")]
+        public async Task<ActionResult<List<SessionDto>>> GetAll()
+        {
+            try
+            {
+                return await sessionService.GetAllSessions(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            }
+            catch (Exception er)
+            {
+                ModelState.AddModelError(string.Empty, er.Message);
+
+                return BadRequest(ModelState);
             }
         }
 
@@ -82,6 +109,12 @@ namespace DropSpace.Controllers
             catch (AuthenticationException)
             {
                 return Challenge();
+            }
+            catch (Exception er)
+            {
+                ModelState.AddModelError(string.Empty, er.Message);
+
+                return BadRequest(ModelState);
             }
         }
     }

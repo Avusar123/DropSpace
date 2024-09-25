@@ -21,7 +21,7 @@ namespace DropSpace.Events.Handlers
                         .Where(m => m.UserId != ev.UserId)
                         .Select(m => m.UserId).ToList()
                     )
-                ).SendAsync("NewUser", ev.Session.ToDto());
+                ).SendAsync("UserJoined", ev.Session.ToDto());
         }
     }
 }

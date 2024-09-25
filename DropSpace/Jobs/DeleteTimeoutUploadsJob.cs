@@ -27,7 +27,7 @@ namespace DropSpace.Jobs
 
                 await applicationContext.SaveChangesAsync();
 
-                await eventTransmitter.FireEvent(new FileListChangedEvent()
+                await eventTransmitter.FireEvent(new NewCh()
                 {
                     UserIds =
                         upload.
