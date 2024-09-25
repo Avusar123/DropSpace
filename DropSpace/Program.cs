@@ -170,6 +170,29 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuer = false,
         IssuerSigningKey = new RSAFromFileKeyProvider(builder.Configuration).GetKey()
     };
+}).AddJwtBearer("refresh", options =>
+{
+    options.TokenValidationParameters = new()
+    {
+        ValidateAudience = false,
+        ValidateIssuer = false,
+        IssuerSigningKey = new RSAFromFileKeyProvider(builder.Configuration).GetKey()
+    };
+
+    options.Events = new JwtBearerEvents()
+    {
+        OnMessageReceived = (ctx) =>
+        {
+            if (!ctx.Request.Cookies.ContainsKey("refreshToken"))
+                ctx.Fail(new NullReferenceException("Токен не задан!"));
+            else
+            {
+                ctx.Token = ctx.Request.Cookies["refreshToken"];
+            }
+
+            return Task.CompletedTask;
+        }
+    };
 });
 
 builder.Services.AddAuthorization(options =>
@@ -182,6 +205,12 @@ builder.Services.AddAuthorization(options =>
         .RequireClaim("sessionDuration")
         .RequireClaim("maxFilesSize")
         .Build();
+
+    options.AddPolicy("refresh", pb =>
+    {
+        pb.AddAuthenticationSchemes("refresh");
+        pb.RequireClaim("type", "refresh");
+    });
 });
 
 

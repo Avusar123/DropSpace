@@ -8,39 +8,81 @@ using System.Text;
 
 namespace DropSpace.DataManagers
 {
+    public record TokensResult(string AccessToken, string RefreshToken, DateTime Expires);
+
     public class JWTFactory(
         IConfiguration configuration, 
         IRSAKeyProvider rSAKeyProvider,
-        RoleManager<UserPlanRole> roleManager)
+        RoleManager<UserPlanRole> roleManager,
+        IUserClaimsPrincipalFactory<IdentityUser> claimsPrincipalFactory)
     {
-        public async Task<string> CreateOneTimeIdentityToken()
+        public string CreateTokenFromClaims(List<Claim> claims, DateTime? expires = null)
         {
-            var principleDuration = configuration.GetValue<int>("OneTimeSecsDuration");
+            expires ??= DateTime.Now.AddMinutes(5);
 
+            var handler = new JwtSecurityTokenHandler();
+
+            var key = rSAKeyProvider.GetKey();
+
+            var creds = new SigningCredentials(key, SecurityAlgorithms.RsaSha256);
+
+            var token = new JwtSecurityToken(
+                claims: claims,
+                expires: expires,
+                signingCredentials: creds);
+
+            return handler.WriteToken(token);
+        }
+
+        public async Task<TokensResult> CreateTokenPair()
+        {
             string roleName = configuration.GetValue<string>("OneTimeRoleName")!;
+
+            DateTime oneTimeExpires = DateTime.Now.AddSeconds(configuration.GetValue<int>("OneTimeSecsDuration"));
 
             List<Claim> claims = [
                     new(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
                     new(ClaimTypes.Role, roleName),
                 ];
 
-            claims = claims.Concat(await GenerateRoleAdditionalClaims(roleName)).ToList();
+            claims = claims
+                .Concat(await GenerateRoleAdditionalClaims(roleName))
+                .ToList();
 
-            return GenerateToken(claims, DateTime.Now.AddSeconds(principleDuration));
+            var accessToken = CreateTokenFromClaims(claims, DateTime.Now.AddMinutes(5));
+
+            claims.Add(new("type", "refresh"));
+
+            var refreshToken = CreateTokenFromClaims(claims, oneTimeExpires);
+
+            return new TokensResult(
+                    accessToken,
+                    refreshToken,
+                    oneTimeExpires
+            );
         }
 
-        public async Task<string> CreateTokenFromIdentity(IdentityUser identityUser, string roleName)
+        public async Task<TokensResult> CreateTokenPair(IdentityUser identityUser, string roleName)
         {
-            var principleDuration = configuration.GetValue<int>("PemanentUserSecsDuration");
+            DateTime permanentUserExpires = DateTime.Now.AddSeconds(configuration.GetValue<int>("PemanentUserSecsDuration"));
 
-            List<Claim> claims = [
-                    new(JwtRegisteredClaimNames.Sub, Guid.NewGuid().ToString()),
-                    new(ClaimTypes.Role, roleName)
-                ];
+            var identity = (await claimsPrincipalFactory.CreateAsync(identityUser)).Identities.First();
 
-            claims = claims.Concat(await GenerateRoleAdditionalClaims(roleName)).ToList();
+            identity.AddClaims(await GenerateRoleAdditionalClaims(roleName));
 
-            return GenerateToken(claims, DateTime.Now.AddSeconds(principleDuration));
+            var claims = identity.Claims.ToList();
+
+            var accessToken = CreateTokenFromClaims(claims, DateTime.Now.AddMinutes(5));
+
+            claims.Add(new("type", "refresh"));
+
+            var refreshToken = CreateTokenFromClaims(claims, permanentUserExpires);
+
+            return new TokensResult(
+                    accessToken,
+                    refreshToken,
+                    permanentUserExpires
+            );
         }
 
         private async Task<List<Claim>> GenerateRoleAdditionalClaims(string role)
@@ -54,25 +96,7 @@ namespace DropSpace.DataManagers
                     new("maxFilesSize", userPlanRole.MaxSize.ToString())
                 ];
 
-
-
             return claims;
-        }
-
-        private string GenerateToken(List<Claim> claims, DateTime expires)
-        {
-            var handler = new JwtSecurityTokenHandler();
-
-            var key = rSAKeyProvider.GetKey();
-
-            var creds = new SigningCredentials(key, SecurityAlgorithms.RsaSha256);
-
-            var token = new JwtSecurityToken(
-                claims: claims,
-                expires: expires,
-                signingCredentials: creds);
-
-            return handler.WriteToken(token);
         }
     }
 }

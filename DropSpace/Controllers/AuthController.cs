@@ -1,13 +1,16 @@
 ﻿using DropSpace.DataManagers;
 using DropSpace.Models;
 using DropSpace.Models.Data;
+using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Configuration;
 using System.Security.Claims;
 namespace DropSpace.Controllers
 {
+
     [ApiController]
     [Route("Auth")]
     public class AuthController(JWTFactory JWTFactory,
@@ -18,15 +21,17 @@ namespace DropSpace.Controllers
 
 
         [HttpPost("OneTime")]
-        public async Task<IActionResult> OneTimeRegister()
+        public async Task<ActionResult<string>> OneTimeRegister()
         {
-            var token = await JWTFactory.CreateOneTimeIdentityToken();
+            var tokens = await JWTFactory.CreateTokenPair();
 
-            return Ok(token);
+            SetRefreshToken(tokens.RefreshToken, tokens.Expires);
+
+            return tokens.AccessToken;
         }
 
         [HttpPost("Register")]
-        public async Task<IActionResult> Register(RegisterModel model)
+        public async Task<ActionResult> Register(RegisterModel model)
         {
 
             var identityuser = new IdentityUser() { Email = model.Email, UserName = model.Email };
@@ -51,9 +56,11 @@ namespace DropSpace.Controllers
 
 
         [HttpPost("Login")]
-        public async Task<IActionResult> Login(LoginModel model)
+        public async Task<ActionResult<string>> Login(LoginModel model)
         {
             var user = await userManager.FindByEmailAsync(model.Email);
+
+            string roleName = configuration.GetValue<string>("LoginUserRole")!;
 
             if (user == null || !await userManager.CheckPasswordAsync(user, model.Password))
             {
@@ -62,8 +69,34 @@ namespace DropSpace.Controllers
                 return BadRequest(ModelState);
             }
 
-            return Ok(await JWTFactory.CreateTokenFromIdentity(user, configuration.GetValue<string>("LoginUserRole")!));
+            var tokens = await JWTFactory.CreateTokenPair(user, roleName);
+
+            SetRefreshToken(tokens.RefreshToken, tokens.Expires);
+
+            return tokens.AccessToken;
         }
 
+        [Authorize("refresh")]
+        [HttpPost("Refresh")]
+        public ActionResult<string> Refresh()
+        {
+            var claims = User.Claims.ToList();
+
+            claims.Remove(claims.First(c => c.Type == "type"));
+
+            return JWTFactory.CreateTokenFromClaims(claims);
+        }
+
+        private void SetRefreshToken(string token, DateTime expires)
+        {
+            var cookieOptions = new CookieOptions()
+            {
+                HttpOnly = true,
+                Secure = true,
+                Expires = expires
+            };
+
+            Response.Cookies.Append("refreshToken", token, cookieOptions);
+        }
     }
 }
