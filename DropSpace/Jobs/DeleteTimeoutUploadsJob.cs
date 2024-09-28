@@ -9,14 +9,14 @@ namespace DropSpace.Jobs
     public class DeleteTimeoutUploadsJob(
     ApplicationContext applicationContext,
     IEventTransmitter eventTransmitter,
-    IFileVault fileSaver,
     IConfiguration configuration) : IJob
     {
         public async Task Execute(IJobExecutionContext context)
         {
             var uploads = applicationContext.PendingUploads
-                .Include(upload => upload.Session)
-                    .ThenInclude(upload => upload.Members)
+                .Include(upload => upload.File)
+                    .ThenInclude(file => file.Session)
+                    .ThenInclude(session => session.Members)
                 .Where(upload =>
                         DateTime.Now - upload.LastChunkUploaded >=
                             TimeSpan.FromSeconds(configuration.GetValue<int>("UploadTimeOutSecs")));
@@ -27,15 +27,15 @@ namespace DropSpace.Jobs
 
                 await applicationContext.SaveChangesAsync();
 
-                await eventTransmitter.FireEvent(new NewCh()
-                {
-                    UserIds =
-                        upload.
-                        Session
-                        .Members
-                        .Select(m => m.UserId)
-                        .ToList()
-                });
+                //await eventTransmitter.FireEvent(new NewCh()
+                //{
+                //    UserIds =
+                //        upload.
+                //        Session
+                //        .Members
+                //        .Select(m => m.UserId)
+                //        .ToList()
+                //});
             }
         }
     }

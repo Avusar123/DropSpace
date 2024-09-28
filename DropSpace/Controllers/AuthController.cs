@@ -1,9 +1,10 @@
-﻿using DropSpace.DataManagers;
-using DropSpace.Models;
+﻿using DropSpace.Contracts.Models;
+using DropSpace.DataManagers;
 using DropSpace.Models.Data;
 using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Configuration;
@@ -15,9 +16,12 @@ namespace DropSpace.Controllers
     [Route("Auth")]
     public class AuthController(JWTFactory JWTFactory,
         IConfiguration configuration,
-        UserManager<IdentityUser> userManager) : ControllerBase
+        UserManager<IdentityUser> userManager,
+        IDataProtectionProvider dataProtectionProvider) : ControllerBase
     {
         const string INVALIDLOGGINGATTEMPTMESSAGE = "Неудачная попытка входа";
+
+        private IDataProtector dataProtector = dataProtectionProvider.CreateProtector("refresh");
 
 
         [HttpPost("OneTime")]
@@ -55,7 +59,7 @@ namespace DropSpace.Controllers
 
 
 
-        [HttpPost("Login")]
+        [HttpPost]
         public async Task<ActionResult<string>> Login(LoginModel model)
         {
             var user = await userManager.FindByEmailAsync(model.Email);
@@ -77,14 +81,23 @@ namespace DropSpace.Controllers
         }
 
         [Authorize("refresh")]
-        [HttpPost("Refresh")]
-        public ActionResult<string> Refresh()
+        [HttpGet]
+        public async Task<ActionResult<string>> Refresh()
         {
             var claims = User.Claims.ToList();
 
             claims.Remove(claims.First(c => c.Type == "type"));
 
-            return JWTFactory.CreateTokenFromClaims(claims);
+            return await JWTFactory.CreateTokenFromClaims(claims);
+        }
+
+        [Authorize("refresh")]
+        [HttpDelete]
+        public async Task<ActionResult> Delete()
+        {
+            Response.Cookies.Delete("refreshToken");
+
+            return Ok();
         }
 
         private void SetRefreshToken(string token, DateTime expires)
@@ -93,10 +106,11 @@ namespace DropSpace.Controllers
             {
                 HttpOnly = true,
                 Secure = true,
-                Expires = expires
+                Expires = expires,
+                SameSite = SameSiteMode.None
             };
 
-            Response.Cookies.Append("refreshToken", token, cookieOptions);
+            Response.Cookies.Append("refreshToken", dataProtector.Protect(token), cookieOptions);
         }
     }
 }

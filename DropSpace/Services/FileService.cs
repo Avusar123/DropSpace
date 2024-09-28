@@ -15,22 +15,30 @@ namespace DropSpace.Services
         IFileStore fileStore,
         ISessionStore sessionStore,
         IEventTransmitter eventTransmitter,
-        IPendingUploadStore pendingUploadStore,
         IFileFlowCoordinator fileCoordinator) : IFileService
     {
-        public async Task<PendingUploadModelDto> CreateUpload(InitiateUploadModel initiateNewUpload)
+        public async Task<FileModelDto> CreateUpload(InitiateUploadModel initiateNewUpload)
         {
-            var pendingUpload = await fileCoordinator.InitiateNewUpload(initiateNewUpload);
+            var fileId = await fileStore.CreateAsync(new FileModel()
+            {
+                FileName = initiateNewUpload.Name,
+                ByteSize = initiateNewUpload.Size,
+                SessionId = initiateNewUpload.SessionId
+            });
 
-            await eventTransmitter.FireEvent(
-                new FileListChangedEvent()
-                {
-                    UserIds = (await sessionStore
-                                    .GetAsync(initiateNewUpload.SessionId))
-                                    .GetMemberIds()
-                });
+            var pendingUpload = await fileCoordinator.InitiateNewUpload(initiateNewUpload, fileId);
 
-            return pendingUpload.ToDto();
+            //await eventTransmitter.FireEvent(
+            //    new FileListChangedEvent()
+            //    {
+            //        UserIds = (await sessionStore
+            //                        .GetAsync(initiateNewUpload.SessionId))
+            //                        .GetMemberIds()
+            //    });
+
+            var file = await fileStore.GetById(fileId);
+
+            return file.ToDto();
 
         }
 
@@ -42,11 +50,11 @@ namespace DropSpace.Services
             {
                 await fileStore.Delete(fileId);
 
-                await eventTransmitter.FireEvent(
-                    new FileListChangedEvent()
-                    {
-                        UserIds = session.GetMemberIds()
-                    });
+                //await eventTransmitter.FireEvent(
+                //    new FileListChangedEvent()
+                //    {
+                //        UserIds = session.GetMemberIds()
+                //    });
             }
         }
 
@@ -54,13 +62,7 @@ namespace DropSpace.Services
         {
             return (await fileStore.GetAll(sessionId))
                 .Select(file =>
-                        new FileModelDto(file.Id, file.ByteSize, file.ByteSize.ToMBytes(), file.FileName)).ToList();
-        }
-
-        public async Task<List<PendingUploadModelDto>> GetAllUploads(Guid sessionId)
-        {
-            return (await pendingUploadStore.GetAll(sessionId))
-                .Select(up => up.ToDto()).ToList();
+                        file.ToDto()).ToList();
         }
 
         public async Task<ChunkData> GetChunkData(DownloadChunkModel downloadChunkModel)
@@ -88,45 +90,18 @@ namespace DropSpace.Services
             return await fileStore.GetById(fileId);
         }
 
-        public async Task<PendingUploadModelDto> UploadNewChunk(UploadChunkModel uploadChunkModel)
+        public async Task<FileModelDto> UploadNewChunk(UploadChunkModel uploadChunkModel)
         {
             var pendingUpload = await fileCoordinator.SaveNewChunk(uploadChunkModel);
+                //await eventTransmitter.FireEvent(
+                //    new FileListChangedEvent()
+                //    {
+                //        UserIds = (await sessionStore
+                //                        .GetAsync(pendingUpload.SessionId))
+                //                        .GetMemberIds()
+                //    });
 
-            if (pendingUpload.IsCompleted)
-            {
-                var fileModel = new FileModel()
-                {
-                    Id = pendingUpload.Id,
-                    FileName = pendingUpload.FileName,
-                    ByteSize = pendingUpload.ByteSize,
-                    SessionId = pendingUpload.SessionId
-                };
-
-                await fileStore.CreateAsync(fileModel);
-
-                await eventTransmitter.FireEvent(
-                    new FileListChangedEvent()
-                    {
-                        UserIds = (await sessionStore
-                                        .GetAsync(pendingUpload.SessionId))
-                                        .GetMemberIds()
-                    });
-            }
-            else
-            {
-                await eventTransmitter.FireEvent(
-                    new NewChunkUploadedEvent()
-                    {
-                        UserIds = (await sessionStore
-                                        .GetAsync(pendingUpload.SessionId))
-                                        .GetMemberIds(),
-
-
-                        Upload = pendingUpload.ToDto()
-                    });
-            }
-
-            return pendingUpload.ToDto();
+            return pendingUpload.File.ToDto();
         }
     }
 }

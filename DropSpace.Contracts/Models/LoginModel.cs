@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
-namespace DropSpace.Models
+namespace DropSpace.Contracts.Models
 {
     public class LoginModel
     {

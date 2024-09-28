@@ -3,7 +3,7 @@ using DropSpace.Events.Interfaces;
 
 namespace DropSpace.Events.Events
 {
-    public class NewChunkUploadedEvent : IEvent
+    public class FileDeletedEvent : IEvent
     {
         public List<string> UserIds { get; set; }
 

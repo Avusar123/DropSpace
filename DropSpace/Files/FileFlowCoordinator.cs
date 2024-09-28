@@ -39,7 +39,7 @@ namespace DropSpace.Files
             return await fileVault.GetFileChunk(hash, startWith, chunkSize);
         }
 
-        public async Task<PendingUploadModel> InitiateNewUpload(InitiateUploadModel initiateUploadModel)
+        public async Task<PendingUploadModel> InitiateNewUpload(InitiateUploadModel initiateUploadModel, Guid fileId)
         {
 
             if (!await sessionService.CanSave(initiateUploadModel.SessionId, initiateUploadModel.Size) ||
@@ -48,14 +48,14 @@ namespace DropSpace.Files
                 throw new NotEnoughSpaceException(initiateUploadModel.Size);
             }
 
-            var pendingupload = new PendingUploadModel
-            (
-                Guid.NewGuid(),
-                initiateUploadModel.Size,
-                chunkSize,
-                initiateUploadModel.Name,
-                initiateUploadModel.SessionId
-            );
+            var pendingupload = new PendingUploadModel()
+            {
+                Id = Guid.NewGuid(),
+                FileId = fileId,
+                IsCompleted = false,
+                ChunkSize = chunkSize,
+                SendedSize = 0,
+            };
 
             await pendingUploadStore.CreateAsync(pendingupload);
 
@@ -66,15 +66,16 @@ namespace DropSpace.Files
         {
             var upload = await pendingUploadStore.GetById(uploadChunk.UploadId);
 
-            if (!await sessionService.CanSave(upload.SessionId, (int)uploadChunk.File.Length) ||
+            if (!await sessionService.CanSave(upload.File.SessionId, (int)uploadChunk.File.Length) ||
                 !await fileVault.CanFit((int)uploadChunk.File.Length))
             {
                 throw new NotEnoughSpaceException((int)uploadChunk.File.Length);
             }
 
-            if (upload.ChunkSize < uploadChunk.File.Length)
+            if (upload.ChunkSize < uploadChunk.File.Length || 
+                upload.SendedSize + uploadChunk.File.Length > upload.File.ByteSize)
             {
-                throw new ArgumentException("Объем чанка превышает заданный");
+                throw new ArgumentException("Объем загрузки превышен!");
             }
 
             var stream = new MemoryStream();
@@ -83,22 +84,18 @@ namespace DropSpace.Files
 
             stream.Position = 0;
 
-            await fileVault.SaveData(upload.Id.ToString(), stream);
+            await fileVault.SaveData(upload.FileId.ToString(), stream);
 
             upload.SendedSize += uploadChunk.File.Length;
 
             upload.LastChunkUploaded = DateTime.Now;
 
-            if (upload.SendedSize >= upload.ByteSize)
+            if (upload.SendedSize >= upload.File.ByteSize)
             {
-                await pendingUploadStore.DeleteAsync(upload.Id);
-
                 upload.IsCompleted = true;
             }
-            else
-            {
-                await pendingUploadStore.UpdateAsync(upload);
-            }
+
+            await pendingUploadStore.UpdateAsync(upload);
 
             return upload;
         }

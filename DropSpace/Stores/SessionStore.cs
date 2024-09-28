@@ -48,6 +48,7 @@ namespace DropSpace.Stores
             return (await applicationContext
                 .Sessions
                 .Include(session => session.Files)
+                    .ThenInclude(file => file.PendingUpload)
                 .Include(session => session.Members)
                 .Where(session => (session.Created + session.Duration > DateTime.Now) || includeExpired)
                 .FirstOrDefaultAsync(s => s.Id == id)) ?? throw new NullReferenceException("Сессия не найдена!");

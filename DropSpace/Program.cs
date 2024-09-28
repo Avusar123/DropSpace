@@ -50,6 +50,18 @@ builder.Services.AddScoped<IEventHandler<UserLeftEvent>, UserLeftEventHandler>()
 builder.Services.AddScoped<IEventHandler<NewChunkUploadedEvent>, NewChunkUploadedEventHandler>();
 builder.Services.AddSingleton<IRSAKeyProvider, RSAFromFileKeyProvider>();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAllOrigins",
+        builder =>
+        {
+            builder.WithOrigins("https://localhost:7297")
+                       .AllowAnyHeader()
+                       .AllowAnyMethod()
+                       .AllowCredentials();
+        });
+});
+
 builder.Services.AddQuartz(q =>
 {
     q.AddJob<DeleteExpiredSessionsJob>(opts =>
@@ -164,11 +176,14 @@ builder.Services.AddAuthentication(options =>
     {
         OnMessageReceived = (ctx) =>
         {
+            var dataProtectionProvider = ctx.HttpContext.RequestServices.GetRequiredService<IDataProtectionProvider>();
+            var protector = dataProtectionProvider.CreateProtector("refresh");
+
             if (!ctx.Request.Cookies.ContainsKey("refreshToken"))
                 ctx.Fail(new NullReferenceException("Токен не задан!"));
             else
             {
-                ctx.Token = ctx.Request.Cookies["refreshToken"];
+                ctx.Token = protector.Unprotect(ctx.Request.Cookies["refreshToken"]);
             }
 
             return Task.CompletedTask;
@@ -212,6 +227,8 @@ if (!app.Environment.IsDevelopment())
         c.RoutePrefix = string.Empty;
     });
 }
+
+app.UseCors("AllowAllOrigins");
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();

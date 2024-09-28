@@ -8,13 +8,11 @@ namespace DropSpace.Services.Interfaces
     {
         Task<List<FileModelDto>> GetAllFiles(Guid sessionId);
 
-        Task<List<PendingUploadModelDto>> GetAllUploads(Guid sessionId);
-
         Task<FileModel> GetFile(Guid fileId);
 
-        Task<PendingUploadModelDto> CreateUpload(InitiateUploadModel initiateNewUpload);
+        Task<FileModelDto> CreateUpload(InitiateUploadModel initiateNewUpload);
 
-        Task<PendingUploadModelDto> UploadNewChunk(UploadChunkModel uploadChunkModel);
+        Task<FileModelDto> UploadNewChunk(UploadChunkModel uploadChunkModel);
 
         Task<ChunkData> GetChunkData(DownloadChunkModel downloadChunkModel);
 

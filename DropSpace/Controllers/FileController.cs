@@ -96,6 +96,10 @@ namespace DropSpace.Controllers
             {
                 return Ok(await fileService.UploadNewChunk(uploadChunk));
             }
+            catch (NullReferenceException ex)
+            {
+                return NotFound(ex.InnerException);
+            }
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
@@ -137,7 +141,7 @@ namespace DropSpace.Controllers
             {
                 var file = await fileService.GetFile(fileId);
 
-                return Ok(new FileModelDto(file.Id, file.ByteSize, file.ByteSize.ToMBytes(), file.FileName));
+                return Ok(file.ToDto());
             }
             catch (NullReferenceException)
             {

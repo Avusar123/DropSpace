@@ -20,11 +20,7 @@ namespace DropSpace.Jobs
             foreach (var session in sessions)
             {
                 await sessionService.Delete(session.Id);
-
-                applicationContext.Remove(session);
             }
-
-            await applicationContext.SaveChangesAsync();
         }
     }
 }

@@ -12,7 +12,13 @@ namespace DropSpace.Extensions
 
         public static SessionDto ToDto(this Session session)
         {
-            return new SessionDto(session.Id, session.Name, session.Members.Count, (session.Created + session.Duration) - DateTime.Now);
+            return new SessionDto(
+                session.Id,
+                session.Name, 
+                session.Members.Count,
+                session.MaxSize,
+                session.MaxSize.ToMBytes(),
+                (session.Created + session.Duration) - DateTime.Now);
         }
     }
 }

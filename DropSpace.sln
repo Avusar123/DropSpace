@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DropSpace.FrontEnd", "DropS
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DropSpace.Contracts", "DropSpace.Contracts\DropSpace.Contracts.csproj", "{F79CE260-9557-4D1E-A9C6-261D750A2A2F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DropSpace.RSAGenerator", "DropSpace.RSAGenerator\DropSpace.RSAGenerator.csproj", "{075B2835-AB2C-48A6-884B-3262890D8621}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DropSpace.RSAGenerator", "DropSpace.RSAGenerator\DropSpace.RSAGenerator.csproj", "{075B2835-AB2C-48A6-884B-3262890D8621}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

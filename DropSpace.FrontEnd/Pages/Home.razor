@@ -1,6 +1,9 @@
 ﻿@page "/"
+@using DropSpace.FrontEnd.Services
+@using DropSpace.FrontEnd.Utils
 @inject NavigationManager navigation
-<PageTitle>Home</PageTitle>
+@inject AuthManager authProvider;
+<PageTitle>Главная</PageTitle>
 
 <div class="d-flex flex-column align-items-center justify-content-center py-3">
     <QRCode @ref="qrCodeComponent"/>
@@ -12,8 +15,10 @@
 @code {
     private QRCode qrCodeComponent;
 
-    protected override void OnAfterRender(bool firstRender)
+    protected async override Task OnAfterRenderAsync(bool firstRender)
     {
+        await authProvider.RefreshAccess();
+
         if (firstRender)
         {
             qrCodeComponent.GenerateQRCode($"{navigation.BaseUri}/invite");

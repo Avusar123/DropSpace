@@ -1,6 +1,6 @@
 ﻿using DropSpace.Contracts.Dtos;
+using DropSpace.Contracts.Models;
 using DropSpace.Extensions;
-using DropSpace.Models;
 using DropSpace.Requirements;
 using DropSpace.Services;
 using DropSpace.Services.Interfaces;
@@ -16,11 +16,11 @@ namespace DropSpace.Controllers
     [EnableRateLimiting("fixed")]
     [Authorize]
     public class SessionController(ISessionService sessionService,
-        IAuthorizationService authorizationService) : ControllerBase
+            IAuthorizationService authorizationService) : ControllerBase
     {
 
         [HttpGet("{id}")]
-        public async Task<ActionResult> Details(Guid id)
+        public async Task<ActionResult<SessionDto>> Details(Guid id)
         {
             try
             {
@@ -73,7 +73,7 @@ namespace DropSpace.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult> Create(CreateSessionViewModel createSessionModel)
+        public async Task<ActionResult<SessionDto>> Create(CreateSessionViewModel createSessionModel)
         {
             if (!ModelState.IsValid)
             {

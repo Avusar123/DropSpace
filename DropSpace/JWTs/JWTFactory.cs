@@ -16,7 +16,7 @@ namespace DropSpace.DataManagers
         RoleManager<UserPlanRole> roleManager,
         IUserClaimsPrincipalFactory<IdentityUser> claimsPrincipalFactory)
     {
-        public string CreateTokenFromClaims(List<Claim> claims, DateTime? expires = null)
+        public Task<string> CreateTokenFromClaims(List<Claim> claims, DateTime? expires = null)
         {
             expires ??= DateTime.Now.AddMinutes(5);
 
@@ -31,7 +31,7 @@ namespace DropSpace.DataManagers
                 expires: expires,
                 signingCredentials: creds);
 
-            return handler.WriteToken(token);
+            return Task.FromResult<string>(handler.WriteToken(token));
         }
 
         public async Task<TokensResult> CreateTokenPair()
@@ -49,11 +49,11 @@ namespace DropSpace.DataManagers
                 .Concat(await GenerateRoleAdditionalClaims(roleName))
                 .ToList();
 
-            var accessToken = CreateTokenFromClaims(claims, DateTime.Now.AddMinutes(5));
+            var accessToken = await CreateTokenFromClaims(claims, DateTime.Now.AddMinutes(5));
 
             claims.Add(new("type", "refresh"));
 
-            var refreshToken = CreateTokenFromClaims(claims, oneTimeExpires);
+            var refreshToken = await CreateTokenFromClaims(claims, oneTimeExpires);
 
             return new TokensResult(
                     accessToken,
@@ -72,11 +72,11 @@ namespace DropSpace.DataManagers
 
             var claims = identity.Claims.ToList();
 
-            var accessToken = CreateTokenFromClaims(claims, DateTime.Now.AddMinutes(5));
+            var accessToken = await CreateTokenFromClaims(claims, DateTime.Now.AddMinutes(5));
 
             claims.Add(new("type", "refresh"));
 
-            var refreshToken = CreateTokenFromClaims(claims, permanentUserExpires);
+            var refreshToken = await CreateTokenFromClaims(claims, permanentUserExpires);
 
             return new TokensResult(
                     accessToken,

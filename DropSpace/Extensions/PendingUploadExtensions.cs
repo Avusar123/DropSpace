@@ -5,17 +5,9 @@ namespace DropSpace.Extensions
 {
     public static class PendingUploadExtensions
     {
-        public static PendingUploadModelDto ToDto(this PendingUploadModel pendingUpload)
+        public static PendingUploadModelDto ToDto(this PendingUploadModel upload)
         {
-            return new PendingUploadModelDto(
-                pendingUpload.Id,
-                pendingUpload.ChunkSize,
-                pendingUpload.SendedSize,
-                pendingUpload.SendedSize.ToMBytes(),
-                pendingUpload.ByteSize,
-                pendingUpload.ByteSize.ToMBytes(),
-                pendingUpload.FileName,
-                pendingUpload.IsCompleted);
+            return new PendingUploadModelDto(upload.Id, upload.ChunkSize, upload.SendedSize, upload.SendedSize.ToMBytes(), upload.IsCompleted);
         }
     }
 }

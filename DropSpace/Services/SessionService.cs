@@ -45,7 +45,7 @@ namespace DropSpace.Services
 
         public async Task Delete(Guid key)
         {
-            var session = await sessionStore.GetAsync(key);
+            var session = await sessionStore.GetAsync(key, true);
 
             await sessionStore.Delete(key);
 
@@ -148,13 +148,15 @@ namespace DropSpace.Services
 
             var totalSize = session
                             .Files
-                            .Select(x => x.ByteSize)
-                            .Concat(
-                                session
-                                .PendingUploads
-                                    .Select(x => x.SendedSize)
-                                    .ToList()
-                            )
+                            .Select(file =>
+                            {
+                                if (file.PendingUpload != null && file.PendingUpload.IsCompleted)
+                                {
+                                    return file.ByteSize;
+                                }
+
+                                return file.PendingUpload?.SendedSize ?? 0;
+                            })
                             .Sum();
 
             return session.MaxSize - totalSize >= size;

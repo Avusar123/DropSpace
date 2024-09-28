@@ -1,0 +1,18 @@
+﻿@using Microsoft.AspNetCore.Components.Sections
+@inherits LayoutComponentBase
+
+<div class="d-flex align-items-center flex-column justify-content-center auth-container">
+    <header class="flex-column-reverse">
+        <h1 class="text-center">
+            <a class="navbar-brand" href="/">DropSpace</a>
+        </h1>
+        <h3 class="text-center mb-3 subtitle" style="font-size: 1em">
+            <SectionOutlet SectionName="SubTitle" />
+        </h3>
+    </header>
+    <div class="container">
+        <main role="main" class="pb-3">
+            @Body
+        </main>
+    </div>
+</div>
