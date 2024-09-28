@@ -1,0 +1,64 @@
+﻿@using DropSpace.Contracts.Dtos
+@using DropSpace.FrontEnd.Extensions
+@using DropSpace.FrontEnd.Utils
+@using System.Security.Claims
+@inject AuthManager tokenProvider
+@inject ISessionService sessionService
+@inject NavigationManager navigationManager
+@inject IAuthService authService
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand text-primary" href="">DROPSPACE</a>
+        <button title="Navigation menu" data-bs-toggle="collapse" data-bs-target="#collapseNav" class="navbar-toggler">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+<div id="collapseNav" class="collapse show nav-scrollable flex-grow-1 flex-column">
+    <nav class="d-flex flex-column sidebar-nav flex-grow-1">
+        <div class="nav-item px-3">
+            @foreach (var session in sessions)
+            {
+                <NavLink class="nav-link fs-6" href="@($"session/{session.Id}")">
+                    @session.Name
+                </NavLink>
+            }
+        </div>
+    </nav>
+    <div class="text-white p-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <p class="subtitle m-0"><span id="sessionsCounter">0</span> / @maxSessions</p>
+            <i class="fa-solid fa-right-from-bracket btn btn-dark" @onclick="Leave"></i>
+        </div>
+
+        <div>
+            <hr />
+            <button type="button" class="btn btn-dark w-100">
+                Добавить сессию
+            </button>
+        </div>
+    </div>
+</div>
+
+
+@code {
+    int maxSessions = 0;
+
+    List<SessionDto> sessions = new();
+
+    protected async override Task OnInitializedAsync()
+    {
+        var claims = await tokenProvider.GetClaims();
+
+        sessions = await sessionService.GetAll();
+
+        maxSessions = claims.GetValue<int>("maxSessions");
+    }
+
+    private async Task Leave()
+    {
+        await authService.Leave();
+
+        navigationManager.NavigateTo("/login");
+    }
+}

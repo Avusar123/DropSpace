@@ -1,0 +1,81 @@
+﻿@page "/login"
+@using DropSpace.Contracts.Models
+@using DropSpace.FrontEnd.Extensions
+@using DropSpace.FrontEnd.Utils
+@using Microsoft.AspNetCore.Components.Sections
+@using Refit
+@layout AuthLayout
+@inject IAuthService authService
+@inject AuthManager authProvider
+@inject NavigationManager navigationManager
+
+<SectionContent SectionName="SubTitle">
+    Вход в аккаунт
+</SectionContent>
+<PageTitle>Вход</PageTitle>
+<section class="container-md">
+    <EditForm Model="@loginModel" OnValidSubmit="OnLogin">
+        <DataAnnotationsValidator />
+        <div class="form-floating mb-3">
+            <InputText id="email" autocomplete="username" placeholder="name@example.com" aria-required="true" class="form-control" @bind-Value="loginModel.Email" />
+            <label for="Email" class="form-label">Почта</label>
+            <ValidationMessage class="text-danger" For="@(() => loginModel.Email)" />
+        </div>
+        <div class="form-floating mb-3">
+            <InputText type="password" id="password" autocomplete="current-password" placeholder="Пароль" aria-required="true" class="form-control" @bind-Value="loginModel.Password" />
+            <label for="Password" class="form-label">Пароль</label>
+            <ValidationMessage class="text-danger" For="@(() => loginModel.Password)" />
+        </div>
+        <div>
+            <button id="one-time" type="button" class="w-100 btn btn-lg btn-success my-3" @onclick="OnOneTime">Войти одноразово</button>
+            <button id="login-submit" type="submit" class="w-100 btn btn-lg btn-primary">Войти</button>
+        </div>
+
+        @if (!string.IsNullOrEmpty(validationError))
+        {
+            <div class="text-danger text-center">@validationError</div>
+        }
+    </EditForm>
+</section>
+<div asp-validation-summary="All" class="text-danger validation-div text-center m-3" role="alert"></div>
+<div class="text-center">
+    <a href="/register">Перейти к регистрации</a>
+</div>
+
+@code {
+    private LoginModel loginModel = new LoginModel();
+
+    private string validationError;
+
+    private async Task OnOneTime()
+    {
+        var token = await authService.OneTimeRegister();
+
+        await authProvider.SaveToken(token);
+
+        navigationManager.NavigateTo("/");
+    }
+
+    private async Task OnLogin()
+    {
+        try
+        {
+            var token = await authService.Login(loginModel);
+
+            await authProvider.SaveToken(token);
+
+            navigationManager.NavigateTo("/");
+        } catch (ApiException ex)
+        {
+            if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                var errors = ex.Content.ParseErrors();
+
+                validationError = errors.Values.First().First();
+
+                StateHasChanged();
+            }
+        }
+
+    }
+}

@@ -1,11 +1,14 @@
 ﻿using DropSpace.Events.Events;
 using DropSpace.Events.Interfaces;
+using DropSpace.Services;
+using DropSpace.Services.Interfaces;
 using Quartz;
 
 namespace DropSpace.Jobs
 {
     public class DeleteExpiredSessionsJob(
     ApplicationContext applicationContext,
+    ISessionService sessionService,
     IEventTransmitter eventTransmitter) : IJob
     {
         public async Task Execute(IJobExecutionContext context)
@@ -16,19 +19,8 @@ namespace DropSpace.Jobs
 
             foreach (var session in sessions)
             {
-                await eventTransmitter.FireEvent(new SessionExpiredEvent()
-                {
-                    UserIds =
-                        session
-                        .Members
-                        .Select(m => m.UserId)
-                        .ToList()
-                });
-
-                applicationContext.Remove(session);
+                await sessionService.Delete(session.Id);
             }
-
-            await applicationContext.SaveChangesAsync();
         }
     }
 }

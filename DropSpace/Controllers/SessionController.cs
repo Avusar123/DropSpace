@@ -1,4 +1,6 @@
-﻿using DropSpace.Models;
+﻿using DropSpace.Contracts.Dtos;
+using DropSpace.Contracts.Models;
+using DropSpace.Extensions;
 using DropSpace.Requirements;
 using DropSpace.Services;
 using DropSpace.Services.Interfaces;
@@ -6,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Authentication;
+using System.Security.Claims;
 
 namespace DropSpace.Controllers
 {
@@ -13,11 +16,11 @@ namespace DropSpace.Controllers
     [EnableRateLimiting("fixed")]
     [Authorize]
     public class SessionController(ISessionService sessionService,
-        IAuthorizationService authorizationService) : Controller
+            IAuthorizationService authorizationService) : ControllerBase
     {
 
         [HttpGet("{id}")]
-        public async Task<ActionResult> Details(Guid id)
+        public async Task<ActionResult<SessionDto>> Details(Guid id)
         {
             try
             {
@@ -25,7 +28,7 @@ namespace DropSpace.Controllers
 
                 if (session.Created + session.Duration < DateTime.Now)
                 {
-                    return Redirect("/");
+                    return NotFound();
                 }
 
                 var result = await authorizationService.AuthorizeAsync(User, session.Id, new MemberRequirement());
@@ -35,28 +38,42 @@ namespace DropSpace.Controllers
                     await sessionService.JoinSession(User, id);
                 }
 
-                return View(session);
+                return Ok(session.ToDto());
 
             }
             catch (NullReferenceException)
             {
-                return Redirect("/");
-
+                return NotFound(id);
             }
             catch (AuthenticationException)
             {
                 return Challenge();
-
             }
-            catch (MaxSessionsLimitReached)
+            catch (Exception er)
             {
-                return View("LimitError");
+                ModelState.AddModelError(string.Empty, er.Message);
+
+                return BadRequest(ModelState);
+            }
+        }
+
+        [HttpGet("All")]
+        public async Task<ActionResult<List<SessionDto>>> GetAll()
+        {
+            try
+            {
+                return await sessionService.GetAllSessions(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            }
+            catch (Exception er)
+            {
+                ModelState.AddModelError(string.Empty, er.Message);
+
+                return BadRequest(ModelState);
             }
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<ActionResult> Create(CreateSessionViewModel createSessionModel)
+        public async Task<ActionResult<SessionDto>> Create(CreateSessionViewModel createSessionModel)
         {
             if (!ModelState.IsValid)
             {
@@ -69,7 +86,7 @@ namespace DropSpace.Controllers
 
                 var member = await sessionService.JoinSession(User, sessionDto.Id);
 
-                return Json(sessionDto);
+                return Ok(sessionDto);
 
             }
             catch (Exception er)
@@ -86,23 +103,19 @@ namespace DropSpace.Controllers
             try
             {
                 await sessionService.LeaveSession(User, id);
+
+                return Ok();
             }
             catch (AuthenticationException)
             {
                 return Challenge();
             }
+            catch (Exception er)
+            {
+                ModelState.AddModelError(string.Empty, er.Message);
 
-
-            return Redirect("/");
-        }
-
-        [HttpGet("Invite")]
-        public async Task<ActionResult> Invite(string code)
-        {
-            if (code == null)
-                return Redirect("/");
-
-            return View();
+                return BadRequest(ModelState);
+            }
         }
     }
 }

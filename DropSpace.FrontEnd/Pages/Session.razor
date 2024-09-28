@@ -1,94 +1,101 @@
 ﻿@page "/session/{sessionId}"
 @using DropSpace.Contracts.Dtos
+@using Refit
 @inject NavigationManager navigation
-<PageTitle>@session.Name</PageTitle>
+@inject ISessionService sessionService;
+@if (session == null)
+{
+    <p>Загрузка..</p>
+} else
+{
+    <PageTitle>@session.Name</PageTitle>
 
-<nav class="navbar navbar-dark w-100 p-3 w-100 bg-dark top-row">
-    <div class="navbar-nav w-100 mr-auto flex-row align-items-center justify-content-between">
-        <div class="nav-item text-white d-flex align-items-center gap-3" style="cursor: default">
-            <div>
-                <span id="memberCount">@session.MembersCount</span>
-                <i class="fa-regular fa-user"></i>
-            </div>
-            <div>
-                @session.Name
-            </div>
-        </div>
-        <ul class="gap-4 m-0" style="display: flex;">
-            <li class="nav-item text-white flex-column align-items-center" style="cursor: default; display: flex;">
+    <nav class="navbar navbar-dark w-100 p-3 w-100 bg-dark top-row">
+        <div class="navbar-nav w-100 mr-auto flex-row align-items-center justify-content-between">
+            <div class="nav-item text-white d-flex align-items-center gap-3" style="cursor: default">
                 <div>
-                    <span id="session-size">0</span> / 0
-                    <span class="subtitle" style="letter-spacing: 0px; font-size: 0.7em; margin: 0 0 0 0.5em">MB</span>
+                    <span id="memberCount">@session.MembersCount</span>
+                    <i class="fa-regular fa-user"></i>
                 </div>
-                <div class="subtitle" style="font-size: 0.7em; letter-spacing: 1px">Максимальный объем</div>
-            </li>
-            <li class="nav-item text-white flex-column align-items-center" style="cursor: default; display: flex;">
-                <div id="time-counter">00:00:00</div>
-                <div class="subtitle" style="font-size: 0.7em; letter-spacing: 1px">Оставшееся время</div>
-            </li>
-            <li class="nav-item align-items-center justify-content-center d-flex flex-wrap">
-                <i class="fa-solid fa-share btn btn-dark fs-6" id="share-button" data-bs-toggle="modal" data-bs-target="#shareModal"></i>
-                <i class="fa-solid fa-right-from-bracket btn btn-dark fs-6" id="leave-button"></i>
-            </li>
-        </ul>
-    </div>
-</nav>
-
-<div class="d-flex flex-column flex-grow-1">
-    <div class="p-4 d-flex gap-3 flex-wrap container-fluid file-container flex-grow-1 align-items-start">
-        <div class="add-file-button file btn-outline-dark btn d-flex flex-column align-items-center justify-content-center p-2" style="">
-            <div class="d-flex w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
+                <div>
+                    @session.Name
+                </div>
             </div>
-            <div class="d-flex flex-column w-100 align-items-center justify-content-center" style="flex: 0 0 33%"><i class="fa-regular fa-plus" style="font-size: 6em"></i></div>
-            <div class="d-flex w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
+            <ul class="gap-4 m-0" style="display: flex;">
+                <li class="nav-item text-white flex-column align-items-center" style="cursor: default; display: flex;">
+                    <div>
+                        <span id="session-size">0</span> / @session.MaxSizeMb
+                        <span class="subtitle" style="letter-spacing: 0px; font-size: 0.7em; margin: 0 0 0 0.5em">MB</span>
+                    </div>
+                    <div class="subtitle" style="font-size: 0.7em; letter-spacing: 1px">Максимальный объем</div>
+                </li>
+                <li class="nav-item text-white flex-column align-items-center" style="cursor: default; display: flex;">
+                    <div id="time-counter">@session.RemainingTime.ToString(@"hh\:mm\:ss")</div>
+                    <div class="subtitle" style="font-size: 0.7em; letter-spacing: 1px">Оставшееся время</div>
+                </li>
+                <li class="nav-item align-items-center justify-content-center d-flex flex-wrap">
+                    <i class="fa-solid fa-share btn btn-dark fs-6" id="share-button" data-bs-toggle="modal" data-bs-target="#shareModal"></i>
+                    <i class="fa-solid fa-right-from-bracket btn btn-dark fs-6" id="leave-button"></i>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="d-flex flex-column flex-grow-1">
+        <div class="p-4 d-flex gap-3 flex-wrap container-fluid file-container flex-grow-1 align-items-start">
+            <div class="add-file-button file btn-outline-dark btn d-flex flex-column align-items-center justify-content-center p-2" style="">
+                <div class="d-flex w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
+                </div>
+                <div class="d-flex flex-column w-100 align-items-center justify-content-center" style="flex: 0 0 33%"><i class="fa-regular fa-plus" style="font-size: 6em"></i></div>
+                <div class="d-flex w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
+                </div>
             </div>
         </div>
-    </div>
-    <div class="collapse" id="filesActionsNavbar">
-        <div class="bg-dark p-4">
-            <h5 class="text-white h4 mb-4" id="files-counter"></h5>
-            <div class="row gap-4">
-                <button id="file-download" type="button" class="btn btn-outline-primary" style="width: 10em">
-                    <i class="fa-solid fa-arrow-down"></i> Скачать
-                </button>
-                <button id="file-delete" type="button" class="btn btn-outline-danger" style="width: 10em">
-                    <i class="fa-solid fa-trash"></i> Удалить
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="shareModal" tabindex="-1" role="dialog" aria-labelledby="shareModalTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header fs-3">
-                <h5 class="modal-title" id="shareModalTitle">Пригласить участника</h5>
-            </div>
-            <div class="modal-body">
-                <div class="text-center">
-                    <QRCode @ref="qrCodeComponent" />
-                </div>
-                <div id="or" class="text-center my-3"><span>ИЛИ</span></div>
-                <div class="code-input-container my-3" data-button="inviteUser">
-                    <input class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
-                    <input class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
-                    <input class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
-                    <input class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
-                    <input class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
-                    <input class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
-                </div>
-                <p class="my-3 text-center subtitle" style="letter-spacing: normal">Чтобы войти с другого устройства отсканируйте QR-код или введите комбинацию символов, указанную на главной странице приглашаемого устройства.</p>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button id="inviteUser" type="button" class="btn btn-outline-primary" disabled>Отправить</button>
+        <div class="collapse" id="filesActionsNavbar">
+            <div class="bg-dark p-4">
+                <h5 class="text-white h4 mb-4" id="files-counter"></h5>
+                <div class="row gap-4">
+                    <button id="file-download" type="button" class="btn btn-outline-primary" style="width: 10em">
+                        <i class="fa-solid fa-arrow-down"></i> Скачать
+                    </button>
+                    <button id="file-delete" type="button" class="btn btn-outline-danger" style="width: 10em">
+                        <i class="fa-solid fa-trash"></i> Удалить
+                    </button>
                 </div>
             </div>
         </div>
     </div>
-    <input multiple="multiple" type="file" id="fileInput" style="display: none;" />
-</div>
 
+    <div class="modal fade" id="shareModal" tabindex="-1" role="dialog" aria-labelledby="shareModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header fs-3">
+                    <h5 class="modal-title" id="shareModalTitle">Пригласить участника</h5>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center">
+                        <QRCode @ref="qrCodeComponent" />
+                    </div>
+                    <div id="or" class="text-center my-3"><span>ИЛИ</span></div>
+                    <div class="code-input-container my-3" data-button="inviteUser">
+                        <input class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
+                        <input class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
+                        <input class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
+                        <input class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
+                        <input class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
+                        <input class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
+                    </div>
+                    <p class="my-3 text-center subtitle" style="letter-spacing: normal">Чтобы войти с другого устройства отсканируйте QR-код или введите комбинацию символов, указанную на главной странице приглашаемого устройства.</p>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button id="inviteUser" type="button" class="btn btn-outline-primary" disabled>Отправить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <input multiple="multiple" type="file" id="fileInput" style="display: none;" />
+    </div>
+}
 
 @code {
     [Parameter]
@@ -98,15 +105,26 @@
 
     private QRCode qrCodeComponent;
 
-    protected override void OnParametersSet()
-    {
-        session = new(Guid.Parse(sessionId), "123", 2);
-    }
-
-    protected override void OnAfterRender(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
+            if (!Guid.TryParse(sessionId, out var id))
+                navigation.NavigateTo("/");
+
+            try
+            {
+                session = await sessionService.Get(id);
+                StateHasChanged();
+            }
+            catch (ApiException ex)
+            {
+                if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    navigation.NavigateTo("/");
+                }
+            }
+
             qrCodeComponent.GenerateQRCode(navigation.Uri);
         }
     }

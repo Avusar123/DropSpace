@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
-namespace DropSpace.Models
+namespace DropSpace.Contracts.Models
 {
     public class LoginModel
     {
@@ -13,7 +13,5 @@ namespace DropSpace.Models
         [PasswordPropertyText]
         [DataType(DataType.Password)]
         public string Password { get; set; }
-
-        public string? ReturnUrl { get; set; }
     }
 }

@@ -39,9 +39,8 @@ namespace DropSpace.Files
             return await fileVault.GetFileChunk(hash, startWith, chunkSize);
         }
 
-        public async Task<PendingUploadModel> InitiateNewUpload(InitiateUploadModel initiateUploadModel)
+        public async Task<PendingUploadModel> InitiateNewUpload(InitiateUploadModel initiateUploadModel, Guid fileId)
         {
-            bool isCompleted = false;
 
             if (!await sessionService.CanSave(initiateUploadModel.SessionId, initiateUploadModel.Size) ||
                 !await fileVault.CanFit(initiateUploadModel.Size))
@@ -49,29 +48,16 @@ namespace DropSpace.Files
                 throw new NotEnoughSpaceException(initiateUploadModel.Size);
             }
 
-            if (await fileVault.ContainsFileWithHash(initiateUploadModel.Hash))
+            var pendingupload = new PendingUploadModel()
             {
-                isCompleted = await fileVault.IsFileCompleted(initiateUploadModel.Hash);
+                Id = Guid.NewGuid(),
+                FileId = fileId,
+                IsCompleted = false,
+                ChunkSize = chunkSize,
+                SendedSize = 0,
+            };
 
-                if (!isCompleted)
-                {
-                    await fileVault.DeleteAsync(initiateUploadModel.Hash);
-                }
-            }
-
-            var pendingupload = new PendingUploadModel
-                (
-                    Guid.NewGuid(),
-                    initiateUploadModel.Size,
-                    chunkSize,
-                    initiateUploadModel.Hash,
-                    initiateUploadModel.Name,
-                    initiateUploadModel.SessionId
-                )
-            { IsCompleted = isCompleted };
-
-            if (!isCompleted)
-                await pendingUploadStore.CreateAsync(pendingupload);
+            await pendingUploadStore.CreateAsync(pendingupload);
 
             return pendingupload;
         }
@@ -80,15 +66,16 @@ namespace DropSpace.Files
         {
             var upload = await pendingUploadStore.GetById(uploadChunk.UploadId);
 
-            if (!await sessionService.CanSave(upload.SessionId, (int)uploadChunk.File.Length) ||
+            if (!await sessionService.CanSave(upload.File.SessionId, (int)uploadChunk.File.Length) ||
                 !await fileVault.CanFit((int)uploadChunk.File.Length))
             {
                 throw new NotEnoughSpaceException((int)uploadChunk.File.Length);
             }
 
-            if (upload.ChunkSize < uploadChunk.File.Length)
+            if (upload.ChunkSize < uploadChunk.File.Length || 
+                upload.SendedSize + uploadChunk.File.Length > upload.File.ByteSize)
             {
-                throw new ArgumentException("Объем чанка превышает заданный");
+                throw new ArgumentException("Объем загрузки превышен!");
             }
 
             var stream = new MemoryStream();
@@ -97,28 +84,18 @@ namespace DropSpace.Files
 
             stream.Position = 0;
 
-            await fileVault.SaveData(upload.FileHash, stream);
+            await fileVault.SaveData(upload.FileId.ToString(), stream);
 
             upload.SendedSize += uploadChunk.File.Length;
 
             upload.LastChunkUploaded = DateTime.Now;
 
-            if (upload.SendedSize >= upload.ByteSize)
+            if (upload.SendedSize >= upload.File.ByteSize)
             {
-                await pendingUploadStore.DeleteAsync(upload.Id);
-
-                if (!await fileVault.IsFileCompleted(upload.FileHash))
-                {
-                    throw new HashDoesNotMatch();
-                }
-
                 upload.IsCompleted = true;
+            }
 
-            }
-            else
-            {
-                await pendingUploadStore.UpdateAsync(upload);
-            }
+            await pendingUploadStore.UpdateAsync(upload);
 
             return upload;
         }

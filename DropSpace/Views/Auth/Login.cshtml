@@ -1,4 +1,5 @@
-﻿@model LoginModel
+﻿@using DropSpace.Contracts.Models
+@model LoginModel
 
 @{
     ViewData["Title"] = "Log in";
@@ -6,13 +7,11 @@
     ViewData["SubTile"] = "Вход в аккаунт";
 
     Layout = "_AuthLayout";
-
-    Model.ReturnUrl ??= "/";
 }
 <div class="row align-items-center justify-content-center w-100 h-100">
     <div class="col-6">
         <section>
-            <form method="post" asp-controller="Auth" asp-action="Login" asp-route-returnUrl="@Model.ReturnUrl">
+            <form method="post" asp-controller="Auth" asp-action="Login">
                 <div class="form-floating mb-3">
                     <input asp-for="Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
                     <label asp-for="Email" class="form-label">Почта</label>
@@ -23,18 +22,18 @@
                     <label asp-for="Password" class="form-label">Пароль</label>
                     <span asp-validation-for="Password" class="text-danger"></span>
                 </div>
-                <input hidden asp-for="ReturnUrl" value="@Model.ReturnUrl"/>
+                @* <input hidden asp-for="ReturnUrl" value="@Model.ReturnUrl"/> *@
                 <div>
                     <button id="login-submit" style="margin: 0 0 15px 0" type="submit" class="w-100 btn btn-lg btn-primary">Войти</button>
                 </div>
             </form>
-            <form method="post" asp-controller="Auth" asp-action="OneTimeRegister" asp-route-returnUrl="@Model.ReturnUrl">
+            <form method="post" asp-controller="Auth" asp-action="OneTimeRegister">
                 <button type="submit" class="w-100 btn btn-lg btn-outline-success">Войти одноразово</button>
             </form>
         </section>
         <div asp-validation-summary="All" class="text-danger validation-div text-center m-3" role="alert"></div>
         <div class="text-center">
-            <a asp-action="Register" asp-controller="Auth" asp-route-returnUrl="@Model.ReturnUrl">Перейти к регистрации</a>
+            <a asp-action="Register" asp-controller="Auth">Перейти к регистрации</a>
         </div>
     </div>
 </div>

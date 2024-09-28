@@ -1,4 +1,9 @@
-﻿@inherits LayoutComponentBase
+﻿@using DropSpace.FrontEnd.Utils
+@using Refit
+@inherits LayoutComponentBase
+@inject AuthManager authProvider
+@inject NavigationManager navigationManager
+
 <div class="page">
     <div class="sidebar bg-dark">
         <NavMenu />
@@ -10,3 +15,20 @@
         </article>
     </main>
 </div>
+
+
+@code {
+    protected async override Task OnInitializedAsync()
+    {
+        try
+        {
+            await authProvider.RefreshAccess();
+        } catch (ApiException ex)
+        {
+            if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                navigationManager.NavigateTo("/login");
+            }
+        }
+    }
+}

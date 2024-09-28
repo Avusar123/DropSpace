@@ -1,6 +1,8 @@
 ﻿using DropSpace.Contracts.Dtos;
 using DropSpace.Events.Events;
 using DropSpace.Events.Interfaces;
+using DropSpace.Extensions;
+using DropSpace.Files.Interfaces;
 using DropSpace.Models.Data;
 using DropSpace.Services.Interfaces;
 using DropSpace.Stores.Interfaces;
@@ -16,6 +18,7 @@ namespace DropSpace.Services
 
     public class SessionService(
         ISessionStore sessionStore,
+        IFileVault fileVault,
         RoleManager<UserPlanRole> roleManager,
         IEventTransmitter eventTransmitter) : ISessionService
     {
@@ -37,12 +40,19 @@ namespace DropSpace.Services
 
             await sessionStore.CreateAsync(session);
 
-            return new SessionDto(session.Id, session.Name, 0);
+            return session.ToDto();
         }
 
         public async Task Delete(Guid key)
         {
+            var session = await sessionStore.GetAsync(key, true);
+
             await sessionStore.Delete(key);
+
+            foreach (var file in session.Files)
+            {
+                await fileVault.DeleteAsync(file.Id.ToString());
+            }
         }
 
         public async Task<Session> GetAsync(Guid key, bool includeExpired = false)
@@ -124,7 +134,7 @@ namespace DropSpace.Services
             return (await sessionStore
                 .GetAll(userId))
                 .Select(
-                    s => new SessionDto(s.Id, s.Name, s.Members.Count)
+                    s => s.ToDto()
                 ).ToList();
         }
 
@@ -138,13 +148,15 @@ namespace DropSpace.Services
 
             var totalSize = session
                             .Files
-                            .Select(x => x.ByteSize)
-                            .Concat(
-                                session
-                                .PendingUploads
-                                    .Select(x => x.SendedSize)
-                                    .ToList()
-                            )
+                            .Select(file =>
+                            {
+                                if (file.PendingUpload != null && file.PendingUpload.IsCompleted)
+                                {
+                                    return file.ByteSize;
+                                }
+
+                                return file.PendingUpload?.SendedSize ?? 0;
+                            })
                             .Sum();
 
             return session.MaxSize - totalSize >= size;

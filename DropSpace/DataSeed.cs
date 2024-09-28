@@ -66,13 +66,12 @@ namespace DropSpace
                     Id = Guid.NewGuid(),
                     Created = DateTime.Now,
                     Duration = TimeSpan.FromMinutes(9999),
-                    MaxSize = 1000,
+                    MaxSize = 999999,
                     Members = new List<SessionMember>()
                     {
                         new() { UserId = user.Id }
                     },
                     Files = [],
-                    PendingUploads = [],
                     Name = "Test"
                 };
 

@@ -18,8 +18,11 @@ namespace DropSpace
         {
             builder.Entity<Session>()
                 .HasMany<FileModel>(session => session.Files);
-            builder.Entity<Session>()
-                .HasMany<PendingUploadModel>(session => session.PendingUploads);
+
+            builder.Entity<FileModel>()
+                .HasOne<PendingUploadModel>(file => file.PendingUpload)
+                .WithOne(upload => upload.File)
+                .HasForeignKey<PendingUploadModel>(upload => upload.FileId);
 
             base.OnModelCreating(builder);
         }

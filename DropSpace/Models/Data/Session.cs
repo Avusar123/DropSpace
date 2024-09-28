@@ -8,8 +8,6 @@
 
         public List<FileModel> Files { get; set; } = [];
 
-        public List<PendingUploadModel> PendingUploads { get; set; } = [];
-
         public long MaxSize { get; set; }
 
         public DateTime Created { get; set; }

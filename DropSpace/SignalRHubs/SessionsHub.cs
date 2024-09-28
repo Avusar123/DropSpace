@@ -10,7 +10,6 @@ namespace DropSpace.SignalRHubs
     [Authorize]
     public class SessionsHub(
         ISessionService sessionService,
-        IFileService fileService,
         IInviteCodeStore inviteCodeStore,
         IConnectionIdStore connectionIdStore) : Hub
     {
@@ -36,22 +35,7 @@ namespace DropSpace.SignalRHubs
             return Task.CompletedTask;
         }
 
-        public async Task<List<SessionDto>> GetSessions()
-        {
-            return await sessionService.GetAllSessions(Context.UserIdentifier!);
-        }
-
-        public async Task<List<FileModelDto>> GetFiles(Guid sessionId)
-        {
-            return await fileService.GetAllFiles(sessionId);
-        }
-
-        public async Task<List<PendingUploadModelDto>> GetUploads(Guid sessionId)
-        {
-            return await fileService.GetAllUploads(sessionId);
-        }
-
-        public async Task<string> RefreshCode()
+        public async Task<string> GetInviteCode()
         {
             return await inviteCodeStore.RefreshCode(Context.UserIdentifier!);
         }

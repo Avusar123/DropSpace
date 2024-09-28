@@ -1,0 +1,76 @@
+﻿@page "/register"
+@using DropSpace.Contracts.Models
+@using DropSpace.FrontEnd.Extensions
+@using DropSpace.FrontEnd.Utils
+@using Microsoft.AspNetCore.Components.Sections
+@using Refit
+@layout AuthLayout
+@inject IAuthService authService
+@inject AuthManager authProvider
+@inject NavigationManager navigationManager
+
+<SectionContent SectionName="SubTitle">
+    Регистрация аккаунта
+</SectionContent>
+<PageTitle>Регистрация</PageTitle>
+<section class="container-md">
+    <EditForm Model="@registerModel" OnValidSubmit="OnRegister">
+        <DataAnnotationsValidator />
+
+        <div class="form-floating mb-3">
+            <InputText id="email" autocomplete="username" placeholder="name@example.com" aria-required="true" class="form-control" @bind-Value="registerModel.Email" />
+            <label for="Email" class="form-label">Почта</label>
+            <ValidationMessage class="text-danger" For="@(() => registerModel.Email)" />
+        </div>
+        <div class="form-floating mb-3">
+            <InputText type="password" id="password" autocomplete="current-password" placeholder="Пароль" aria-required="true" class="form-control" @bind-Value="registerModel.Password" />
+            <label for="Password" class="form-label">Пароль</label>
+            <ValidationMessage class="text-danger" For="@(() => registerModel.Password)" />
+        </div>
+        <div class="form-floating mb-3">
+            <InputText type="password" id="confirm-password" autocomplete="current-password" placeholder="Подтверждение пароля" aria-required="true" class="form-control" @bind-Value="registerModel.ConfirmPassowrd" />
+            <label for="Password" class="form-label">Потдверждение пароля</label>
+            <ValidationMessage class="text-danger" For="@(() => registerModel.ConfirmPassowrd)" />
+        </div>
+        <div>
+            <button id="login-submit" type="submit" class="w-100 btn btn-lg btn-primary">Регистрация</button>
+        </div>
+
+        @if (!string.IsNullOrEmpty(validationError))
+        {
+            <div class="text-danger text-center">@validationError</div>
+        }
+    </EditForm>
+</section>
+<div asp-validation-summary="All" class="text-danger validation-div text-center m-3" role="alert"></div>
+<div class="text-center">
+    <a href="/login">Перейти к входу</a>
+</div>
+
+@code {
+    private RegisterModel registerModel = new RegisterModel();
+
+    private string validationError;
+
+    private async Task OnRegister()
+    {
+        try
+        {
+            await authService.Register(registerModel);
+
+            navigationManager.NavigateTo("/login");
+        }
+        catch (ApiException ex)
+        {
+            if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                var errors = ex.Content.ParseErrors();
+
+                validationError = errors.Values.First().First();
+
+                StateHasChanged();
+            }
+        }
+
+    }
+}

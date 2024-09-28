@@ -8,7 +8,8 @@ namespace DropSpace.Stores
     {
         public async Task<Guid> CreateAsync(PendingUploadModel model)
         {
-            model.Id = Guid.NewGuid();
+            if (model.Id == Guid.Empty)
+                model.Id = Guid.NewGuid();
 
             model.LastChunkUploaded = DateTime.Now;
 
@@ -35,16 +36,9 @@ namespace DropSpace.Stores
         {
             return await applicationContext
                 .PendingUploads
-                .Where(upload => upload.Id == id)
-                .Include(upload => upload.Session)
+                .Include(upload => upload.File)
+                .Where(upload => upload.Id == id && upload.IsCompleted == false)
                 .FirstOrDefaultAsync() ?? throw new NullReferenceException("Загрузка не найдена");
-        }
-
-        public async Task<List<PendingUploadModel>> GetAll(Guid sessionId)
-        {
-            return await applicationContext.PendingUploads
-                .Where(upload => upload.SessionId == sessionId)
-                .ToListAsync();
         }
 
         public async Task UpdateAsync(PendingUploadModel model)
