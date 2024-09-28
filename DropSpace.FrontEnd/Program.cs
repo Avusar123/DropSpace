@@ -15,9 +15,11 @@ builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Configuration.AddJsonFile("./appsettings.json");
 builder.Services.AddBlazoredLocalStorage();
+builder.Services.AddSingleton<ToastTransmitter>();
 builder.Services.AddScoped<AuthManager>();
 builder.Services.AddScoped<TokenHttpHandler>();
 builder.Services.AddScoped<CookieHttpHandler>();
+builder.Services.AddBlazorBootstrap();
 builder.Services.AddRefitClient<IAuthService>()
     .WithConfiguration(builder.Configuration)
     .AddHttpMessageHandler<CookieHttpHandler>();

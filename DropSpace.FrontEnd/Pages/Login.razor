@@ -8,7 +8,7 @@
 @inject IAuthService authService
 @inject AuthManager authProvider
 @inject NavigationManager navigationManager
-
+@inject ISessionService sessionService
 <SectionContent SectionName="SubTitle">
     Вход в аккаунт
 </SectionContent>
@@ -53,7 +53,9 @@
 
         await authProvider.SaveToken(token);
 
-        navigationManager.NavigateTo("/");
+        var id = await GetFirstSessionIdOrCreate();
+
+        navigationManager.NavigateTo($"/session/{id}");
     }
 
     private async Task OnLogin()
@@ -64,7 +66,9 @@
 
             await authProvider.SaveToken(token);
 
-            navigationManager.NavigateTo("/");
+            var id = await GetFirstSessionIdOrCreate();
+
+            navigationManager.NavigateTo($"/session/{id}");
         } catch (ApiException ex)
         {
             if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
@@ -76,6 +80,23 @@
                 StateHasChanged();
             }
         }
+    }
 
+
+    private async Task<Guid> GetFirstSessionIdOrCreate()
+    {
+        var sessions = await sessionService.GetAll();
+
+        if (sessions.Count == 0)
+        {
+            var model = new CreateSessionViewModel()
+            {
+                Name = "Новая сессия"
+            };
+
+            sessions.Add(await sessionService.Create(model));
+        }
+
+        return sessions.First().Id;
     }
 }

@@ -1,8 +1,5 @@
 ﻿using Blazored.LocalStorage;
 using DropSpace.FrontEnd.Services;
-using System.Net.Http.Headers;
-using Microsoft.AspNetCore.Components;
-using Refit;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 

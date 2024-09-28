@@ -27,7 +27,7 @@
     </nav>
     <div class="text-white p-3">
         <div class="d-flex justify-content-between align-items-center">
-            <p class="subtitle m-0"><span id="sessionsCounter">0</span> / @maxSessions</p>
+            <p class="subtitle m-0">@currentSessions / @maxSessions</p>
             <i class="fa-solid fa-right-from-bracket btn btn-dark" @onclick="Leave"></i>
         </div>
 
@@ -44,6 +44,8 @@
 @code {
     int maxSessions = 0;
 
+    int currentSessions = 0;
+
     List<SessionDto> sessions = new();
 
     protected async override Task OnInitializedAsync()
@@ -51,6 +53,8 @@
         var claims = await tokenProvider.GetClaims();
 
         sessions = await sessionService.GetAll();
+
+        currentSessions = sessions.Count;
 
         maxSessions = claims.GetValue<int>("maxSessions");
     }

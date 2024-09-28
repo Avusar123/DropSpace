@@ -1,9 +1,10 @@
-﻿@using DropSpace.FrontEnd.Utils
+﻿@using BlazorBootstrap
+@using DropSpace.FrontEnd.Utils
 @using Refit
 @inherits LayoutComponentBase
 @inject AuthManager authProvider
 @inject NavigationManager navigationManager
-
+@inject ToastTransmitter toastTransmitter
 <div class="page">
     <div class="sidebar bg-dark">
         <NavMenu />
@@ -15,11 +16,18 @@
         </article>
     </main>
 </div>
-
+<Toasts class="p-3" Messages="messages" Placement="ToastsPlacement.BottomRight" />
 
 @code {
+    List<ToastMessage> messages = new List<ToastMessage>();
+
     protected async override Task OnInitializedAsync()
     {
+        toastTransmitter.OnShowToast += (toast) =>
+        {
+            messages.Add(toast);
+        };
+
         try
         {
             await authProvider.RefreshAccess();

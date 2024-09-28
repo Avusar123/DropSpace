@@ -1,7 +1,11 @@
 ﻿@page "/session/{sessionId}"
+@using BlazorBootstrap
 @using DropSpace.Contracts.Dtos
+@using DropSpace.FrontEnd.Extensions
+@using DropSpace.FrontEnd.Utils
 @using Refit
 @inject NavigationManager navigation
+@inject ToastTransmitter toastTransmitter 
 @inject ISessionService sessionService;
 @if (session == null)
 {
@@ -30,7 +34,7 @@
                     <div class="subtitle" style="font-size: 0.7em; letter-spacing: 1px">Максимальный объем</div>
                 </li>
                 <li class="nav-item text-white flex-column align-items-center" style="cursor: default; display: flex;">
-                    <div id="time-counter">@session.RemainingTime.ToString(@"hh\:mm\:ss")</div>
+                    <div id="time-counter">@remainingTime.ToString(@"hh\:mm\:ss")</div>
                     <div class="subtitle" style="font-size: 0.7em; letter-spacing: 1px">Оставшееся время</div>
                 </li>
                 <li class="nav-item align-items-center justify-content-center d-flex flex-wrap">
@@ -101,6 +105,10 @@
     [Parameter]
     public string sessionId { get; set; }
 
+    private Timer remainingTimer;
+
+    private TimeSpan remainingTime;
+
     private SessionDto session;
 
     private QRCode qrCodeComponent;
@@ -115,17 +123,38 @@
             try
             {
                 session = await sessionService.Get(id);
+                remainingTime = session.RemainingTime;
                 StateHasChanged();
             }
             catch (ApiException ex)
             {
-                if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
                 {
-                    navigation.NavigateTo("/");
+                    var errors = ex.Content.ParseErrors().Values;
+
+                    toastTransmitter.ShowToast(new ToastMessage()
+                    {
+                        Type = ToastType.Danger,
+                        AutoHide = true,
+                            Message = errors.First().First()
+                    });
                 }
+
+                navigation.NavigateTo("/");
             }
 
             qrCodeComponent.GenerateQRCode(navigation.Uri);
+
+            remainingTimer = new Timer((state) =>
+            {
+                remainingTime -= TimeSpan.FromSeconds(1);
+                StateHasChanged();
+                if (remainingTime.TotalSeconds == 0)
+                {
+                    remainingTimer.Dispose();
+                    navigation.NavigateTo("/");
+                }
+            }, null, 0, 1000);
         }
     }
 }

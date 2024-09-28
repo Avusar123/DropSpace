@@ -1,6 +1,7 @@
 ﻿using DropSpace.Contracts.Models;
 using DropSpace.DataManagers;
 using DropSpace.Models.Data;
+using DropSpace.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -95,7 +96,14 @@ namespace DropSpace.Controllers
         [HttpDelete]
         public async Task<ActionResult> Delete()
         {
-            Response.Cookies.Delete("refreshToken");
+            var cookieOptions = new CookieOptions()
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None
+            };
+
+            Response.Cookies.Delete("refreshToken", cookieOptions);
 
             return Ok();
         }

@@ -1,5 +1,6 @@
 ﻿using System.Net.Http.Headers;
 using DropSpace.FrontEnd.Utils;
+using Microsoft.AspNetCore.Components.WebAssembly.Http;
 using Refit;
 
 namespace DropSpace.FrontEnd.HttpHandlers

@@ -7,14 +7,17 @@ using DropSpace.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using System.IO;
 using System.Security.Authentication;
 using System.Security.Claims;
+using System.Text;
 
 namespace DropSpace.Controllers
 {
     [Route("Session")]
     [EnableRateLimiting("fixed")]
     [Authorize]
+    [ApiController]
     public class SessionController(ISessionService sessionService,
             IAuthorizationService authorizationService) : ControllerBase
     {
