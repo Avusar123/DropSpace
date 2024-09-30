@@ -1,6 +1,7 @@
 ﻿@using DropSpace.Contracts.Dtos
 @using DropSpace.FrontEnd.Extensions
 @using DropSpace.FrontEnd.Utils
+@using Microsoft.AspNetCore.SignalR.Client
 @using System.Security.Claims
 @inject AuthManager tokenProvider
 @inject ISessionService sessionService
@@ -33,7 +34,7 @@
 
         <div>
             <hr />
-            <button type="button" class="btn btn-dark w-100">
+            <button type="button" class="btn btn-dark w-100" data-bs-toggle="modal" data-bs-target="#createSessionModal">
                 Добавить сессию
             </button>
         </div>
@@ -48,6 +49,8 @@
 
     List<SessionDto> sessions = new();
 
+    HubConnection hubConnection;
+
     protected async override Task OnInitializedAsync()
     {
         var claims = await tokenProvider.GetClaims();
@@ -57,6 +60,11 @@
         currentSessions = sessions.Count;
 
         maxSessions = claims.GetValue<int>("maxSessions");
+    }
+
+    public void AddSession(SessionDto session)
+    {
+        sessions.Add(session);
     }
 
     private async Task Leave()

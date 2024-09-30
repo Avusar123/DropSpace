@@ -64,19 +64,10 @@ namespace DropSpace.Services
         {
             var session = await GetAsync(key);
 
-            var roleid = claimsPrincipal.FindFirstValue(ClaimTypes.Role)
-                ?? throw new AuthenticationException("Id роли не найден!");
-
             var userId = claimsPrincipal.FindFirstValue(ClaimTypes.NameIdentifier)
                 ?? throw new AuthenticationException("Id пользователя не найден!");
 
-            var userPlan = await roleManager.FindByNameAsync(roleid)
-                ?? throw new AuthenticationException("Роль не найдена!");
-
-            if (!await CanJoin(userId, userPlan))
-            {
-                throw new MaxSessionsLimitReached(userPlan.MaxSessions);
-            }
+            await ThrowIfCannotJoin(claimsPrincipal);
 
             var member = new SessionMember()
             {
@@ -162,9 +153,21 @@ namespace DropSpace.Services
             return session.MaxSize - totalSize >= size;
         }
 
-        private async Task<bool> CanJoin(string userId, UserPlanRole userPlan)
+        public async Task ThrowIfCannotJoin(ClaimsPrincipal claimsPrincipal)
         {
-            return userPlan.MaxSessions > (await GetAllSessions(userId)).Count;
+            var roleid = claimsPrincipal.FindFirstValue(ClaimTypes.Role)
+                ?? throw new AuthenticationException("Id роли не найден!");
+
+            var userId = claimsPrincipal.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? throw new AuthenticationException("Id пользователя не найден!");
+
+            var userPlan = await roleManager.FindByNameAsync(roleid)
+                ?? throw new AuthenticationException("Роль не найдена!");
+
+            if (!(userPlan.MaxSessions > (await GetAllSessions(userId)).Count))
+            {
+                throw new MaxSessionsLimitReached(userPlan.MaxSessions);
+            }
         }
     }
 }

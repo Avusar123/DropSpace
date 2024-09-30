@@ -151,3 +151,19 @@ body {
     max-width: 500px;
     margin: 0 auto;
 }
+
+.toast-container {
+    z-index: 99999;
+    
+}
+
+@media (max-width: 425px) {
+    .nav-subtitle {
+        display: none;
+    }
+
+    .navbar .subtitle {
+        font-size: 0.5em !important;
+        margin: 0 !important;
+    }
+}

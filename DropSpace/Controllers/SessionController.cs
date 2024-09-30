@@ -76,7 +76,7 @@ namespace DropSpace.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<SessionDto>> Create(CreateSessionViewModel createSessionModel)
+        public async Task<ActionResult<SessionDto>> Create(CreateSessionModel createSessionModel)
         {
             if (!ModelState.IsValid)
             {
@@ -85,6 +85,8 @@ namespace DropSpace.Controllers
 
             try
             {
+                await sessionService.ThrowIfCannotJoin(User);
+
                 var sessionDto = await sessionService.CreateFromPrincipalAsync(User, createSessionModel.Name);
 
                 var member = await sessionService.JoinSession(User, sessionDto.Id);

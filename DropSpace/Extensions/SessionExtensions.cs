@@ -18,7 +18,7 @@ namespace DropSpace.Extensions
                 session.Members.Count,
                 session.MaxSize,
                 session.MaxSize.ToMBytes(),
-                (session.Created + session.Duration) - DateTime.Now);
+                session.Created + session.Duration);
         }
     }
 }

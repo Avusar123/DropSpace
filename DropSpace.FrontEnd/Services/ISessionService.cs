@@ -7,7 +7,7 @@ namespace DropSpace.FrontEnd.Services
     public interface ISessionService
     {
         [Post("/Session/")]
-        Task<SessionDto> Create(CreateSessionViewModel createSessionModel);
+        Task<SessionDto> Create(CreateSessionModel createSessionModel);
 
         [Get("/Session/{id}")]
         Task<SessionDto> Get(Guid id);

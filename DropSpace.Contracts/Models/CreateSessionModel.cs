@@ -2,9 +2,9 @@
 
 namespace DropSpace.Contracts.Models
 {
-    public class CreateSessionViewModel
+    public class CreateSessionModel
     {
-        [MaxLength(30, ErrorMessage = "Превышен лимит названия сессии!")]
+        [MaxLength(15, ErrorMessage = "Превышен лимит названия сессии!")]
         [Required(ErrorMessage = "Это поле обязательно!")]
         public string Name { get; set; }
     }

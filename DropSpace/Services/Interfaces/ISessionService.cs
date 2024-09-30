@@ -14,5 +14,6 @@ namespace DropSpace.Services.Interfaces
         Task LeaveSession(ClaimsPrincipal claimsPrincipal, Guid key);
         Task Update(Session entity);
         Task<bool> CanSave(Guid sessionId, long size);
+        Task ThrowIfCannotJoin(ClaimsPrincipal claimsPrincipal);
     }
 }
