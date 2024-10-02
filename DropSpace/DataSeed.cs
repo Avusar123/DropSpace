@@ -40,44 +40,6 @@ namespace DropSpace
                 await roleManager.CreateAsync(oneTimeUserRole);
 
             }
-
-            if (userManager.Users.Count() == 0)
-            {
-
-                var user = new IdentityUser()
-                {
-                    Email = "test@gmail.com",
-                    UserName = "test@gmail.com"
-                };
-
-
-                var result = await userManager.CreateAsync(user, "Nitroxwar123!");
-
-                if (!result.Succeeded)
-                {
-                    throw new Exception("Seed data error");
-                }
-
-                await userManager.AddToRoleAsync(user, "PermanentUser");
-
-
-                var session = new Session()
-                {
-                    Id = Guid.NewGuid(),
-                    Created = DateTime.Now,
-                    Duration = TimeSpan.FromMinutes(9999),
-                    MaxSize = 999999,
-                    Members = new List<SessionMember>()
-                    {
-                        new() { UserId = user.Id }
-                    },
-                    Files = [],
-                    Name = "Test"
-                };
-
-                await sessionStore.CreateAsync(session);
-
-            }
         }
     }
 }

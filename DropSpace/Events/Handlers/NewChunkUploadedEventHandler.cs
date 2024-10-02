@@ -9,15 +9,15 @@ namespace DropSpace.Events.Handlers
     public class NewChunkUploadedEventHandler(
         IHubContext<SessionsHub> hubContext,
         IConnectionIdStore connectionIdStore
-        ) : IEventHandler<NewChunkUploadedEvent>
+        ) : IEventHandler<FileUpdatedEvent>
     {
-        public async Task Handle(NewChunkUploadedEvent ev)
+        public async Task Handle(FileUpdatedEvent ev)
         {
             await hubContext.Clients.Clients(
                     await connectionIdStore.GetConnectionsId(
                         ev.UserIds
                     )
-            ).SendAsync("NewChunkUploaded", ev.Upload);
+            ).SendAsync("FileUpdated", ev.File);
         }
     }
 }

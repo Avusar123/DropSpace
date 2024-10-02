@@ -47,6 +47,8 @@ namespace DropSpace.Services
         {
             var session = await sessionStore.GetAsync(key, true);
 
+            await eventTransmitter.FireEvent(new SessionExpiredEvent(session));
+
             await sessionStore.Delete(key);
 
             foreach (var file in session.Files)
@@ -76,7 +78,7 @@ namespace DropSpace.Services
 
             session.Members.Add(member);
 
-            await eventTransmitter.FireEvent(new UserJoinedEvent() { Session = session, UserId = userId });
+            await eventTransmitter.FireEvent(new UserJoinedEvent(session, userId));
 
             await sessionStore.UpdateAsync(session);
 
@@ -101,15 +103,13 @@ namespace DropSpace.Services
 
                 session.Members.Remove(member);
 
-                await eventTransmitter.FireEvent(new UserLeftEvent() { Session = session, UserId = userId });
+                await Update(session);
+
+                await eventTransmitter.FireEvent(new UserLeftEvent(session, userId));
 
                 if (session.Members.Count == 0)
                 {
                     await Delete(key);
-                }
-                else
-                {
-                    await Update(session);
                 }
 
             }
@@ -121,7 +121,6 @@ namespace DropSpace.Services
 
         public async Task<List<SessionDto>> GetAllSessions(string userId)
         {
-
             return (await sessionStore
                 .GetAll(userId))
                 .Select(

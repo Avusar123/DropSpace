@@ -16,6 +16,8 @@ using DropSpace.Services.Interfaces;
 using DropSpace.SignalRHubs;
 using DropSpace.Stores;
 using DropSpace.Stores.Interfaces;
+using DropSpace.Utils;
+using DropSpace.Utils.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -38,16 +40,18 @@ builder.Services.AddDbContext<ApplicationContext>(options => options.UseInMemory
 builder.Services.AddScoped<IAuthorizationHandler, MemberRequirementAuthorizationHandler>();
 builder.Services.AddScoped<IFileFlowCoordinator, FileFlowCoordinator>();
 builder.Services.AddSingleton<IFileVault, FileVault>();
-builder.Services.AddSingleton<IInviteCodeStore, InMemoryInviteCodeStore>();
+builder.Services.AddSingleton<IInviteCodeStore, CasheInviteCodeStore>();
 builder.Services.AddScoped<ISessionStore, SessionStore>();
 builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<IFileStore, FileStore>();
 builder.Services.AddScoped<IPendingUploadStore, PendingUploadStore>();
-builder.Services.AddSingleton<IConnectionIdStore, InMemoryConnectionIdStore>();
+builder.Services.AddSingleton<IConnectionIdStore, CasheConnectionIdStore>();
 builder.Services.AddSingleton<IEventTransmitter, EventTransmitter>();
 builder.Services.AddScoped<IEventHandler<UserJoinedEvent>, UserJoinedEventHandler>();
 builder.Services.AddScoped<IEventHandler<UserLeftEvent>, UserLeftEventHandler>();
-builder.Services.AddScoped<IEventHandler<NewChunkUploadedEvent>, NewChunkUploadedEventHandler>();
+builder.Services.AddScoped<IEventHandler<FileUpdatedEvent>, NewChunkUploadedEventHandler>();
+builder.Services.AddScoped<IEventHandler<SessionExpiredEvent>, SessionExpiredEventHandler>();
+builder.Services.AddSingleton(typeof(ISeparetedCashe<>), typeof(SeparetedCashe<>));
 builder.Services.AddSingleton<IRSAKeyProvider, RSAFromFileKeyProvider>();
 
 builder.Services.AddCors(options =>
@@ -149,8 +153,6 @@ builder.Services.AddRateLimiter(_ => _
         options.QueueLimit = 2;
     }));
 
-builder.Services.AddSignalR();
-
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -162,6 +164,22 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = false,
         ValidateIssuer = false,
         IssuerSigningKey = new RSAFromFileKeyProvider(builder.Configuration).GetKey()
+    };
+
+    options.Events = new JwtBearerEvents()
+    {
+        OnMessageReceived = (context) =>
+        {
+            var path = context.HttpContext.Request.Path;
+            if (path.Value.Contains("/hubs/"))
+            {
+                var accessToken = context.Request.Query["access_token"];
+
+                context.Token = accessToken;
+            }
+
+            return Task.CompletedTask;
+        }
     };
 }).AddJwtBearer("refresh", options =>
 {
@@ -191,6 +209,11 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+builder.Services.AddMemoryCache(options =>
+{
+    options.TrackStatistics = true;
+});
+
 builder.Services.AddAuthorization(options =>
 {
     options.DefaultPolicy = new AuthorizationPolicyBuilder()
@@ -209,6 +232,7 @@ builder.Services.AddAuthorization(options =>
     });
 });
 
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -237,9 +261,9 @@ app.UseRouting();
 
 app.UseRateLimiter();
 
-app.MapHub<SessionsHub>("/Session/Subscribe");
-
 app.UseAuthorization();
+
+app.MapHub<SessionsHub>("/hubs/Sessions");
 
 app.MapControllerRoute(
     name: "default",

@@ -1,12 +1,16 @@
 ﻿@using BlazorBootstrap
+@using DropSpace.Contracts.Dtos
 @using DropSpace.Contracts.Models
 @using DropSpace.FrontEnd.Extensions
 @using DropSpace.FrontEnd.Utils
+@using DropSpace.FrontEnd.Utils.Interfaces
+@using Microsoft.AspNetCore.SignalR.Client
 @using Refit
 @inherits LayoutComponentBase
 @inject AuthManager authProvider
 @inject NavigationManager navigationManager
-@inject ToastTransmitter toastTransmitter
+@inject IHubConnectionProvider hubConnectionProvider
+@inject EventTransmitter eventTransmitter
 @inject ISessionService sessionService
 <div class="page">
     <div class="sidebar bg-dark">
@@ -56,12 +60,14 @@
             var session = await sessionService.Create(createSessionModel);
 
             navigationManager.NavigateTo($"/session/{session.Id}");
+
+            await eventTransmitter.InvokeAsync("NewSession", session);
         }
         catch (ApiException ex)
         {
             if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
             {
-                toastTransmitter.ShowToast(new ToastMessage()
+                await eventTransmitter.InvokeAsync<ToastMessage>("ShowToast", new ToastMessage()
                 {
                     Type = ToastType.Danger,
                     AutoHide = true,
@@ -73,20 +79,24 @@
 
     protected async override Task OnInitializedAsync()
     {
-        toastTransmitter.OnShowToast += (toast) =>
-        {
-            messages.Add(toast);
-        };
 
         try
         {
             await authProvider.RefreshAccess();
-        } catch (ApiException ex)
+        }
+        catch (ApiException ex)
         {
             if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
                 navigationManager.NavigateTo("/login");
             }
         }
+
+        eventTransmitter.On<ToastMessage>("ShowToast", (toast) =>
+        {
+            messages.Add(toast);
+
+            return Task.CompletedTask;
+        });
     }
 }

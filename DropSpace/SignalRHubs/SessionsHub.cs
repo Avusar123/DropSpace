@@ -1,4 +1,5 @@
 ﻿using DropSpace.Contracts.Dtos;
+using DropSpace.Extensions;
 using DropSpace.Services.Interfaces;
 using DropSpace.Stores.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -40,25 +41,14 @@ namespace DropSpace.SignalRHubs
             return await inviteCodeStore.RefreshCode(Context.UserIdentifier!);
         }
 
-        public async Task<bool> SendInviteByCode(string code, string sessionId)
+        public async Task SendInviteByCode(string code, Guid sessionId)
         {
-            try
-            {
-                var userId = await inviteCodeStore.GetUserIdByCodeOrNull(code.ToUpper())
-                    ?? throw new NullReferenceException("Пользователь не найден!");
+            var userId = await inviteCodeStore.GetUserIdByCodeOrNull(code.ToUpper())
+                ?? throw new NullReferenceException("Пользователь не найден!");
 
-                var session = await sessionService.GetAsync(Guid.Parse(sessionId));
+            var session = await sessionService.GetAsync(sessionId);
 
-                await Clients.User(userId).SendAsync("NewInvite", session.Name, session.Id);
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                await Clients.Caller.SendAsync("ErrorRecieved", ex.Message);
-
-                return false;
-            }
+            await Clients.User(userId).SendAsync("NewInvite", session.ToDto());
         }
     }
 }

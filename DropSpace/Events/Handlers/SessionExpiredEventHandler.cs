@@ -1,5 +1,4 @@
-﻿using DropSpace.Contracts.Dtos;
-using DropSpace.Events.Events;
+﻿using DropSpace.Events.Events;
 using DropSpace.Events.Interfaces;
 using DropSpace.Extensions;
 using DropSpace.SignalRHubs;
@@ -8,17 +7,18 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace DropSpace.Events.Handlers
 {
-    public class UserJoinedEventHandler(
+    public class SessionExpiredEventHandler(
         IHubContext<SessionsHub> hubContext,
-        IConnectionIdStore connectionIdStore) : IEventHandler<UserJoinedEvent>
+        IConnectionIdStore connectionIdStore
+        ) : IEventHandler<SessionExpiredEvent>
     {
-        public async Task Handle(UserJoinedEvent ev)
+        public async Task Handle(SessionExpiredEvent ev)
         {
             await hubContext.Clients.Clients(
                     await connectionIdStore.GetConnectionsId(
                         ev.Session.GetMemberIds()
                     )
-                ).SendAsync("UserJoined", ev.Session.ToDto());
+            ).SendAsync("SessionExpired", ev.Session.Id);
         }
     }
 }

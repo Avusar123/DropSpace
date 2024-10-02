@@ -4,12 +4,13 @@
 @using DropSpace.FrontEnd.Extensions
 @using DropSpace.FrontEnd.Utils
 @using Refit
+@implements IDisposable
 @inject NavigationManager navigation
-@inject ToastTransmitter toastTransmitter 
+@inject EventTransmitter eventTransmitter 
 @inject ISessionService sessionService;
 @if (session == null)
 {
-    <p>Загрузка..</p>
+    <p class="p-3">Загрузка..</p>
 } else
 {
     <PageTitle>@session.Name</PageTitle>
@@ -111,64 +112,77 @@
 
     private QRCode qrCodeComponent;
 
+    public void Dispose()
+    {
+        if (remainingTimer != null)
+            remainingTimer.Dispose();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Guid.TryParse(sessionId, out var id))
+            navigation.NavigateTo("/");
+
+        try
+        {
+            session = await sessionService.Get(id);
+            StateHasChanged();
+        }
+        catch (ApiException ex)
+        {
+            string message = "";
+
+            if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                var errors = ex.Content.ParseErrors().Values;
+
+                message = errors.First().First();
+            }
+
+            if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                message = "Сессия исчерпана или не существует!";
+            }
+
+            if (!string.IsNullOrEmpty(message))
+            {
+                await eventTransmitter.InvokeAsync("ShowToast", new ToastMessage()
+                    {
+                        Type = ToastType.Danger,
+                        AutoHide = true,
+                        Message = message
+                    });
+            }
+
+            await OnSessionRemoved();
+        }
+
+        qrCodeComponent.GenerateQRCode(navigation.Uri);
+
+        remainingTimer = new Timer(async (state) =>
+        {
+            remainingTime = session.Expired - DateTime.Now;
+            StateHasChanged();
+            if (remainingTime.TotalSeconds <= 0)
+            {
+                remainingTimer.Dispose();
+
+                await OnSessionRemoved();
+            }
+        }, null, 0, 1000);
+    }
+
     private async Task Leave()
     {
         await sessionService.Leave(session.Id);
 
-        navigation.NavigateTo("/");
+        await OnSessionRemoved();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private async Task OnSessionRemoved()
     {
-        if (firstRender)
-        {
-            if (!Guid.TryParse(sessionId, out var id))
-                navigation.NavigateTo("/");
+        await eventTransmitter.InvokeAsync<Guid>("SessionRemoved", session.Id);
 
-            try
-            {
-                session = await sessionService.Get(id);
-                StateHasChanged();
-            }
-            catch (ApiException ex)
-            {
-                if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
-                {
-                    var errors = ex.Content.ParseErrors().Values;
-
-                    toastTransmitter.ShowToast(new ToastMessage()
-                    {
-                        Type = ToastType.Danger,
-                        AutoHide = true,
-                        Message = errors.First().First()
-                    });
-                }
-
-                if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    toastTransmitter.ShowToast(new ToastMessage()
-                        {
-                            Type = ToastType.Danger,
-                            AutoHide = true,
-                            Message = "Сессия исчерпана или не существует!",
-                        });
-                }
-
-                navigation.NavigateTo("/");
-            }
-
-            qrCodeComponent.GenerateQRCode(navigation.Uri);
-            
-            remainingTimer = new Timer((state) =>
-            {
-                remainingTime = session.Expired - DateTime.Now;
-                StateHasChanged();
-                if (remainingTime.TotalSeconds <= 0)
-                {
-                    remainingTimer.Dispose();
-                    navigation.NavigateTo("/");
-                }
-            }, null, 0, 1000);
-        }
+        navigation.NavigateTo("/");
     }
 }

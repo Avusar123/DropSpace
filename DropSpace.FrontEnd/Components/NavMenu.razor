@@ -1,12 +1,15 @@
 ﻿@using DropSpace.Contracts.Dtos
 @using DropSpace.FrontEnd.Extensions
 @using DropSpace.FrontEnd.Utils
+@using DropSpace.FrontEnd.Utils.Interfaces
 @using Microsoft.AspNetCore.SignalR.Client
 @using System.Security.Claims
 @inject AuthManager tokenProvider
 @inject ISessionService sessionService
 @inject NavigationManager navigationManager
 @inject IAuthService authService
+@inject EventTransmitter eventTransmitter
+@inject IHubConnectionProvider hubConnectionProvider 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand text-primary" href="">DROPSPACE</a>
@@ -53,6 +56,7 @@
 
     protected async override Task OnInitializedAsync()
     {
+
         var claims = await tokenProvider.GetClaims();
 
         sessions = await sessionService.GetAll();
@@ -60,11 +64,47 @@
         currentSessions = sessions.Count;
 
         maxSessions = claims.GetValue<int>("maxSessions");
+
+        eventTransmitter.On<SessionDto>("NewSession", AddSession);
+
+        eventTransmitter.On<Guid>("SessionRemoved", RemoveSession);
+
+        hubConnection = await hubConnectionProvider.GetOrCreateConnection("SessionNotification");
+
+        hubConnection.On<Guid>("SessionExpired", async (sessionId) =>
+        {
+            await RemoveSession(sessionId);
+        });
     }
 
-    public void AddSession(SessionDto session)
+    public Task AddSession(SessionDto session)
     {
         sessions.Add(session);
+
+        currentSessions = sessions.Count;
+
+        StateHasChanged();
+
+        return Task.CompletedTask;
+    }
+
+    public Task RemoveSession(Guid sessionId)
+    {
+
+        var session = sessions.FirstOrDefault(s => s.Id == sessionId);
+
+        if (session == null)
+        {
+            return Task.CompletedTask;
+        }
+
+        sessions.Remove(session);
+
+        currentSessions = sessions.Count;
+
+        StateHasChanged();
+
+        return Task.CompletedTask;
     }
 
     private async Task Leave()

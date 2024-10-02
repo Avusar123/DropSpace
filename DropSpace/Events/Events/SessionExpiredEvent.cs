@@ -3,5 +3,5 @@ using DropSpace.Models.Data;
 
 namespace DropSpace.Events.Events
 {
-    public record UserJoinedEvent(Session Session, string UserId) : IEvent;
+    public record SessionExpiredEvent(Session Session) : IEvent;
 }

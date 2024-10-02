@@ -1,27 +1,48 @@
 ﻿@page "/"
 @using DropSpace.FrontEnd.Services
 @using DropSpace.FrontEnd.Utils
+@using DropSpace.FrontEnd.Utils.Interfaces
+@using Microsoft.AspNetCore.SignalR.Client
 @inject NavigationManager navigation
 @inject AuthManager authProvider;
+@inject IHubConnectionProvider hubConnectionProvider
+@implements IDisposable
 <PageTitle>Главная</PageTitle>
 
 <div class="d-flex flex-column align-items-center justify-content-center py-3">
     <QRCode @ref="qrCodeComponent"/>
-    <h1 id="invite-code" class="invite-code" style="font-size: 3em; cursor: default;">123456</h1>
+    <h1 id="invite-code" class="invite-code" style="font-size: 3em; cursor: default;">@inviteCode</h1>
     <p class="subtitle fs-5 p-3 text-center" style="letter-spacing: normal">Отсканируйте этот QR-код или используйте уникальный код ниже, чтобы войти в удаленную сессию.</p>
 </div>
 
 
 @code {
+    public void Dispose()
+    {
+        if (hubConnection != null && hubConnection.State == HubConnectionState.Connected)
+            hubConnection.Remove("NewInvite");
+    }
+
+    private HubConnection hubConnection;
+
+    private string inviteCode = "";
+
     private QRCode qrCodeComponent;
 
     protected async override Task OnAfterRenderAsync(bool firstRender)
     {
-        await authProvider.RefreshAccess();
-
         if (firstRender)
         {
-            qrCodeComponent.GenerateQRCode($"{navigation.BaseUri}/invite");
+            hubConnection = await hubConnectionProvider.GetOrCreateConnection("SessionNotification");
+
+            inviteCode = await hubConnection.InvokeAsync<string>("GetInviteCode");
+
+            if (inviteCode != null)
+            {
+                StateHasChanged();
+                qrCodeComponent.GenerateQRCode($"{navigation.BaseUri}invite/{inviteCode}");
+            }
+            
         }
     }
 }

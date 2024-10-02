@@ -17,9 +17,7 @@ namespace DropSpace.Events.Handlers
 
             await hubContext.Clients.Clients(
                     await connectionIdStore.GetConnectionsId(
-                        ev.Session.Members
-                        .Where(m => m.UserId != ev.UserId)
-                        .Select(m => m.UserId).ToList()
+                        ev.Session.GetMemberIds()
                     )
                 ).SendAsync("UserLeft", ev.Session.ToDto());
         }
