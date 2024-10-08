@@ -2,7 +2,6 @@
 
 namespace DropSpace.FrontEnd.Utils
 {
-
     public class EventTransmitter
     {
         Dictionary<string, Func<object, Task>> handlers = [];

@@ -9,11 +9,11 @@
 @inject NavigationManager navigationManager
 @inject IAuthService authService
 @inject EventTransmitter eventTransmitter
-@inject IHubConnectionProvider hubConnectionProvider 
+@inject IHubConnectionProvider hubConnectionProvider
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand text-primary" href="">DROPSPACE</a>
-        <button title="Navigation menu" data-bs-toggle="collapse" data-bs-target="#collapseNav" class="navbar-toggler">
+        <button title="Navigation menu" @onclick="async (e) => await OnMenuClicked.InvokeAsync(e)" data-bs-toggle="collapse" data-bs-target="#collapseNav" class="navbar-toggler">
             <span class="navbar-toggler-icon"></span>
         </button>
     </div>
@@ -23,9 +23,9 @@
         <div class="nav-item px-3">
             @foreach (var session in sessions)
             {
-                <NavLink class="nav-link fs-6" href="@($"session/{session.Id}")">
+                <NavLinkWithCallback class="nav-link fs-6" OnClick="async (e) => await OnNavigatingToSession.InvokeAsync(session.Id)!" href="@($"session/{session.Id}")">
                     @session.Name
-                </NavLink>
+                </NavLinkWithCallback>
             }
         </div>
     </nav>
@@ -46,16 +46,28 @@
 
 
 @code {
-    int maxSessions = 0;
+        [Parameter]
+        public EventCallback<Guid> OnNavigatingToSession { get; set; }
 
-    int currentSessions = 0;
+        [Parameter]
+        public EventCallback<MouseEventArgs> OnMenuClicked { get; set; }
 
-    List<SessionDto> sessions = new();
+        int maxSessions = 0;
 
-    HubConnection hubConnection;
+        int currentSessions = 0;
+
+        List<SessionDto> sessions = new();
+
+        HubConnection hubConnection;
 
     protected async override Task OnInitializedAsync()
     {
+        if (!OnNavigatingToSession.HasDelegate)
+
+        OnNavigatingToSession = EventCallback.Factory.Create<Guid>(this, (sessionId) =>
+        {
+            navigationManager.NavigateTo($"session/{sessionId}");
+        });
 
         var claims = await tokenProvider.GetClaims();
 
@@ -79,6 +91,11 @@
 
     public Task AddSession(SessionDto session)
     {
+        if (sessions.Any(s => s.Id == session.Id))
+        {
+            return Task.CompletedTask;
+        }
+
         sessions.Add(session);
 
         currentSessions = sessions.Count;

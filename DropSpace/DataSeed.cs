@@ -33,7 +33,7 @@ namespace DropSpace
                     Name = "OneTimeUser",
                     MaxSessions = 1,
                     MaxSize = (long)1000 * 1024 * 1024,
-                    SessionDuration = (int)TimeSpan.FromMinutes(1).TotalSeconds
+                    SessionDuration = (int)TimeSpan.FromMinutes(10).TotalSeconds
                 };
 
                 await roleManager.CreateAsync(permanentUserRole);

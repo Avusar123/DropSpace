@@ -157,6 +157,17 @@ body {
     
 }
 
+.navbar-brand {
+    margin: 0;
+}
+
+.offcanvas {
+    height: auto !important;
+}
+.offcanvas.hiding, .offcanvas.show, .offcanvas.showing {
+    visibility: visible !important;
+}
+
 @media (max-width: 425px) {
     .nav-subtitle {
         display: none;

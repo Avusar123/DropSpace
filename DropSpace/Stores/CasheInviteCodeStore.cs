@@ -3,7 +3,7 @@ using DropSpace.Utils.Interfaces;
 using Microsoft.Extensions.Caching.Distributed;
 using System.Text;
 
-namespace DropSpace.Providers
+namespace DropSpace.Stores
 {
     public class CasheInviteCodeStore(ISeparetedCashe<CasheInviteCodeStore> cashe) : IInviteCodeStore
     {

@@ -3,11 +3,15 @@
 @using DropSpace.Contracts.Dtos
 @using DropSpace.FrontEnd.Extensions
 @using DropSpace.FrontEnd.Utils
+@using DropSpace.FrontEnd.Utils.Interfaces
+@using Microsoft.AspNetCore.SignalR.Client
 @using Refit
 @implements IDisposable
 @inject NavigationManager navigation
+@inject IHubConnectionProvider hubConnectionProvider
 @inject EventTransmitter eventTransmitter 
-@inject ISessionService sessionService;
+@inject ISessionService sessionService
+@inject IJSRuntime JSRuntime;
 @if (session == null)
 {
     <p class="p-3">Загрузка..</p>
@@ -19,7 +23,7 @@
         <div class="navbar-nav w-100 mr-auto flex-row align-items-center justify-content-between">
             <div class="nav-item text-white d-flex align-items-center gap-3" style="cursor: default">
                 <div>
-                    <span id="memberCount">@session.MembersCount</span>
+                    <span id="memberCount">@membersCount</span>
                     <i class="fa-regular fa-user"></i>
                 </div>
                 <div class="text-truncate">
@@ -83,15 +87,16 @@
                     </div>
                     <div id="or" class="text-center my-3"><span>ИЛИ</span></div>
                     <div class="code-input-container my-3" data-button="inviteUser">
-                        <input class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
-                        <input class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
-                        <input class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
-                        <input class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
-                        <input class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />                    </div>
+                        <input @ref="codeInputs[0]" @onkeyup="(args) => OnCodeKeyPressed(args, 0)" @oninput="(args) => OnCodeInput(args, 0)" class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
+                        <input @ref="codeInputs[1]" @onkeyup="(args) => OnCodeKeyPressed(args, 1)" @oninput="(args) => OnCodeInput(args, 1)" class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
+                        <input @ref="codeInputs[2]" @onkeyup="(args) => OnCodeKeyPressed(args, 2)" @oninput="(args) => OnCodeInput(args, 2)" class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
+                        <input @ref="codeInputs[3]" @onkeyup="(args) => OnCodeKeyPressed(args, 3)" @oninput="(args) => OnCodeInput(args, 3)" class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
+                        <input @ref="codeInputs[4]" @onkeyup="(args) => OnCodeKeyPressed(args, 4)" @oninput="(args) => OnCodeInput(args, 4)" class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
+                    </div>
                     <p class="my-3 text-center subtitle" style="letter-spacing: normal">Чтобы войти с другого устройства отсканируйте QR-код или введите комбинацию символов, указанную на главной странице приглашаемого устройства.</p>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
-                        <button id="inviteUser" type="button" class="btn btn-outline-primary" disabled>Отправить</button>
+                        <button @ref="sendButton" @onclick="Invite" id="inviteUser" type="button" class="btn btn-outline-primary" disabled>Отправить</button>
                     </div>
                 </div>
             </div>
@@ -106,9 +111,17 @@
 
     private Timer remainingTimer;
 
+    private ElementReference[] codeInputs = new ElementReference[5];
+
+    private ElementReference sendButton;
+
+    private HubConnection hubConnection;
+
+    private int membersCount = 1;
+
     private TimeSpan remainingTime;
 
-    private SessionDto session;
+    private SessionDto? session;
 
     private QRCode qrCodeComponent;
 
@@ -116,16 +129,59 @@
     {
         if (remainingTimer != null)
             remainingTimer.Dispose();
+
+        hubConnection.Remove("UserLeft");
+
+        hubConnection.Remove("UserJoined");
+
+        session = null;
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
         if (!Guid.TryParse(sessionId, out var id))
             navigation.NavigateTo("/");
 
+        hubConnection = await hubConnectionProvider.GetOrCreateConnection("SessionNotification");
+
+        Dispose();
+
+        hubConnection.On("UserLeft", async (int membersCount) =>
+        {
+            this.membersCount = membersCount;
+
+            StateHasChanged();
+
+            await eventTransmitter.InvokeAsync<ToastMessage>("ShowToast", new()
+            {
+                AutoHide = true,
+                Type = ToastType.Primary,
+                Message = "Пользователь вышел из сессии"
+            });    
+        });
+
+        hubConnection.On("UserJoined", async (int membersCount) =>
+        {
+            this.membersCount = membersCount;
+
+            await eventTransmitter.InvokeAsync<ToastMessage>("ShowToast", new()
+            {
+                AutoHide = true,
+                Type = ToastType.Primary,
+                Message = "К сессии присоединился новый пользователь"
+            });
+
+            StateHasChanged();
+        });
+
         try
         {
             session = await sessionService.Get(id);
+
+            await eventTransmitter.InvokeAsync("NewSession", session);
+
+            membersCount = session.MembersCount;
+
             StateHasChanged();
         }
         catch (ApiException ex)
@@ -147,11 +203,11 @@
             if (!string.IsNullOrEmpty(message))
             {
                 await eventTransmitter.InvokeAsync("ShowToast", new ToastMessage()
-                    {
-                        Type = ToastType.Danger,
-                        AutoHide = true,
-                        Message = message
-                    });
+                {
+                    Type = ToastType.Danger,
+                    AutoHide = true,
+                    Message = message
+                });
             }
 
             await OnSessionRemoved();
@@ -172,6 +228,69 @@
         }, null, 0, 1000);
     }
 
+    private async Task OnCodeInput(ChangeEventArgs e, int id)
+    {
+        await JSRuntime.InvokeVoidAsync("inputCode", codeInputs[id], codeInputs, id, sendButton);
+    }
+
+    private async Task Invite()
+    {
+        var code = await JSRuntime.InvokeAsync<string>("collectCode", codeInputs);
+
+        if (code.Length != 5)
+        {
+            return;
+        }
+
+        string message = "Сообщение успешно отправлено!";
+
+        ToastType toastType = ToastType.Success;
+
+
+        try
+        {
+            await hubConnection.InvokeAsync("SendInviteByCode", code, session.Id);
+        } catch (Exception ex)
+        {
+            message = ex.Message.Split(":").Last();
+            toastType = ToastType.Danger;
+        }
+
+        await eventTransmitter.InvokeAsync("ShowToast", new ToastMessage()
+        {
+            Type = toastType,
+            AutoHide = true,
+            Message = message
+        });
+    }
+
+    private async Task OnCodeKeyPressed(KeyboardEventArgs e, int id)
+    {
+        switch (e.Key)
+        {
+            case "Backspace":
+                if (id >= 1)
+                {
+                    await codeInputs[id - 1].FocusAsync();
+                }
+                break;
+            case "ArrowRight":
+                if (id < codeInputs.Length - 1)
+                {
+                    await codeInputs[id + 1].FocusAsync();
+                }
+                break;
+            case "ArrowLeft":
+                if (id >= 1)
+                {
+                    await codeInputs[id - 1].FocusAsync();
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
     private async Task Leave()
     {
         await sessionService.Leave(session.Id);
@@ -181,6 +300,7 @@
 
     private async Task OnSessionRemoved()
     {
+        if (session != null)
         await eventTransmitter.InvokeAsync<Guid>("SessionRemoved", session.Id);
 
         navigation.NavigateTo("/");

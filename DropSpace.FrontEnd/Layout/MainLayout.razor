@@ -23,7 +23,7 @@
         </article>
     </main>
 </div>
-<div class="modal fade" id="createSessionModal" data-bs-theme="dark" tabindex="-1" role="dialog" aria-hidden="true">
+<div class="modal fade" id="createSessionModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
             <div class="modal-header">
@@ -60,14 +60,12 @@
             var session = await sessionService.Create(createSessionModel);
 
             navigationManager.NavigateTo($"/session/{session.Id}");
-
-            await eventTransmitter.InvokeAsync("NewSession", session);
         }
         catch (ApiException ex)
         {
-            if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest && ex.Content != null)
             {
-                await eventTransmitter.InvokeAsync<ToastMessage>("ShowToast", new ToastMessage()
+                await ShowToast(new ToastMessage()
                 {
                     Type = ToastType.Danger,
                     AutoHide = true,
@@ -77,26 +75,19 @@
         }
     }
 
+    private Task ShowToast(ToastMessage toast)
+    {
+        messages.Add(toast);
+
+        StateHasChanged();
+
+        return Task.CompletedTask;
+    }
+
     protected async override Task OnInitializedAsync()
     {
+        await authProvider.RefreshAccess();
 
-        try
-        {
-            await authProvider.RefreshAccess();
-        }
-        catch (ApiException ex)
-        {
-            if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            {
-                navigationManager.NavigateTo("/login");
-            }
-        }
-
-        eventTransmitter.On<ToastMessage>("ShowToast", (toast) =>
-        {
-            messages.Add(toast);
-
-            return Task.CompletedTask;
-        });
+        eventTransmitter.On<ToastMessage>("ShowToast", ShowToast);
     }
 }

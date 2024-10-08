@@ -1,4 +1,5 @@
 ﻿using DropSpace.Contracts.Dtos;
+using DropSpace.Controllers.Filters;
 using DropSpace.Extensions;
 using DropSpace.Models;
 using DropSpace.Requirements;
@@ -9,11 +10,14 @@ using Microsoft.AspNetCore.Mvc;
 namespace DropSpace.Controllers
 {
     [Route("File")]
+    [ApiController]
+    [Authorize]
     public class FileController(
         IFileService fileService,
         IAuthorizationService authorizationService) : ControllerBase
     {
         [HttpDelete]
+        [SessionMemberFilter(nameof(deleteFileModel), "SessionId")]
         public async Task<ActionResult> Delete(DeleteFileModel deleteFileModel)
         {
             if (!ModelState.IsValid)
@@ -35,17 +39,9 @@ namespace DropSpace.Controllers
         }
 
         [HttpGet("All/{sessionId}")]
+        [SessionMemberFilter(nameof(sessionId))]
         public async Task<ActionResult<List<FileModelDto>>> GetAll(Guid sessionId)
         {
-            var authresult = await authorizationService
-                .AuthorizeAsync(User, sessionId, new MemberRequirement());
-
-            if (!authresult.Succeeded)
-            {
-                return Forbid();
-            }
-
-
             try
             {
                 return await fileService.GetAllFiles(sessionId);
@@ -58,6 +54,7 @@ namespace DropSpace.Controllers
             }
         }
 
+        [SessionMemberFilter(nameof(initiateUploadModel), "SessionId")]
         [HttpPost]
         public async Task<ActionResult> CreateUpload(InitiateUploadModel initiateUploadModel)
         {
@@ -85,6 +82,7 @@ namespace DropSpace.Controllers
         }
 
         [HttpPut]
+        [SessionMemberFilter(nameof(uploadChunk), "SessionId")]
         public async Task<ActionResult> UploadChunk(UploadChunkModel uploadChunk)
         {
             if (!ModelState.IsValid)
@@ -108,6 +106,7 @@ namespace DropSpace.Controllers
         }
 
         [HttpGet("Download")]
+        [SessionMemberFilter(nameof(downloadChunkModel), "SessionId")]
         public async Task<ActionResult> DownloadFileChunk(DownloadChunkModel downloadChunkModel)
         {
             try

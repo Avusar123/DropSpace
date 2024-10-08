@@ -1,9 +1,8 @@
-﻿
-using DropSpace.Stores.Interfaces;
+﻿using DropSpace.Stores.Interfaces;
 using DropSpace.Utils.Interfaces;
 using Microsoft.Extensions.Caching.Distributed;
 
-namespace DropSpace.Providers
+namespace DropSpace.Stores
 {
     public class CasheConnectionIdStore(ISeparetedCashe<CasheConnectionIdStore> cashe) : IConnectionIdStore
     {

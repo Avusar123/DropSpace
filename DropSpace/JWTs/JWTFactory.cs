@@ -6,12 +6,12 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace DropSpace.DataManagers
+namespace DropSpace.JWTs
 {
     public record TokensResult(string AccessToken, string RefreshToken, DateTime Expires);
 
     public class JWTFactory(
-        IConfiguration configuration, 
+        IConfiguration configuration,
         IRSAKeyProvider rSAKeyProvider,
         RoleManager<UserPlanRole> roleManager,
         IUserClaimsPrincipalFactory<IdentityUser> claimsPrincipalFactory)
@@ -31,7 +31,7 @@ namespace DropSpace.DataManagers
                 expires: expires,
                 signingCredentials: creds);
 
-            return Task.FromResult<string>(handler.WriteToken(token));
+            return Task.FromResult(handler.WriteToken(token));
         }
 
         public async Task<TokensResult> CreateTokenPair()

@@ -16,9 +16,12 @@ namespace DropSpace.Events.Handlers
         {
             await hubContext.Clients.Clients(
                     await connectionIdStore.GetConnectionsId(
-                        ev.Session.GetMemberIds()
+                        ev.Session.Members
+                        .Where(m => m.UserId != ev.UserId)
+                        .Select(m => m.UserId)
+                        .ToList()
                     )
-                ).SendAsync("UserJoined", ev.Session.ToDto());
+                ).SendAsync("UserJoined", ev.Session.Members.Count);
         }
     }
 }

@@ -1,5 +1,4 @@
 using DropSpace;
-using DropSpace.DataManagers;
 using DropSpace.Events;
 using DropSpace.Events.Events;
 using DropSpace.Events.Handlers;
@@ -7,8 +6,8 @@ using DropSpace.Events.Interfaces;
 using DropSpace.Files;
 using DropSpace.Files.Interfaces;
 using DropSpace.Jobs;
+using DropSpace.JWTs;
 using DropSpace.Models.Data;
-using DropSpace.Providers;
 using DropSpace.Requirements;
 using DropSpace.RSAKeyProviders;
 using DropSpace.Services;
@@ -25,6 +24,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Quartz;
 using System.Security.Claims;
@@ -232,7 +232,7 @@ builder.Services.AddAuthorization(options =>
     });
 });
 
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(options => options.EnableDetailedErrors = true);
 
 var app = builder.Build();
 

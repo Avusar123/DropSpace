@@ -14,12 +14,14 @@ namespace DropSpace.Events.Handlers
     {
         public async Task Handle(UserLeftEvent ev)
         {
-
             await hubContext.Clients.Clients(
                     await connectionIdStore.GetConnectionsId(
-                        ev.Session.GetMemberIds()
+                        ev.Session.Members
+                        .Where(m => m.UserId != ev.UserId)
+                        .Select(m => m.UserId)
+                        .ToList()
                     )
-                ).SendAsync("UserLeft", ev.Session.ToDto());
+                ).SendAsync("UserLeft", ev.Session.Members.Count);
         }
     }
 }

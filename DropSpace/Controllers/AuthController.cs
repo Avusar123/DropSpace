@@ -1,5 +1,5 @@
 ﻿using DropSpace.Contracts.Models;
-using DropSpace.DataManagers;
+using DropSpace.JWTs;
 using DropSpace.Models.Data;
 using DropSpace.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.BearerToken;

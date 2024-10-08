@@ -23,4 +23,10 @@
     <ProjectReference Include="..\DropSpace.Contracts\DropSpace.Contracts.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Update="Layout\InviteLayout.razor">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+  </ItemGroup>
+
 </Project>

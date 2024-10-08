@@ -1,4 +1,6 @@
 ﻿@page "/"
+@using BlazorBootstrap
+@using DropSpace.Contracts.Dtos
 @using DropSpace.FrontEnd.Services
 @using DropSpace.FrontEnd.Utils
 @using DropSpace.FrontEnd.Utils.Interfaces
@@ -15,8 +17,26 @@
     <p class="subtitle fs-5 p-3 text-center" style="letter-spacing: normal">Отсканируйте этот QR-код или используйте уникальный код ниже, чтобы войти в удаленную сессию.</p>
 </div>
 
+<Offcanvas @ref="offcanvas" Title="Приглашение в сессию" Placement="Placement.Bottom" IsScrollable="true" UseStaticBackdrop="true">
+    <BodyTemplate>
+        @if (sessionToJoin != null)
+        {
+            <div class="d-flex justify-content-between p-3">
+                <p>@sessionToJoin.Name</p>
+                <div>
+                    <Button Color="ButtonColor.Success" @onclick="Accept" Outline="true">Принять</Button>
+                    <Button Color="ButtonColor.Danger" Outline="true" @onclick="() => offcanvas?.HideAsync()!">Отклонить</Button>
+                </div>
+            </div>
+        }
+    </BodyTemplate>
+</Offcanvas>
 
 @code {
+    private Offcanvas offcanvas;
+
+    private SessionDto sessionToJoin;
+
     public void Dispose()
     {
         if (hubConnection != null && hubConnection.State == HubConnectionState.Connected)
@@ -42,7 +62,22 @@
                 StateHasChanged();
                 qrCodeComponent.GenerateQRCode($"{navigation.BaseUri}invite/{inviteCode}");
             }
-            
+
+            hubConnection.On<SessionDto>("NewInvite", async (session) =>
+            {
+                sessionToJoin = session;
+                StateHasChanged();
+                await offcanvas.ShowAsync();
+            });
         }
+    }
+    private void Accept(MouseEventArgs e)
+    {
+        if (sessionToJoin == null)
+        {
+            return;
+        }
+
+        navigation.NavigateTo($"/session/{sessionToJoin.Id}");
     }
 }

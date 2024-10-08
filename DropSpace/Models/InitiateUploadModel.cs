@@ -2,11 +2,8 @@
 
 namespace DropSpace.Models
 {
-    public struct InitiateUploadModel
+    public class InitiateUploadModel
     {
-
-        Nullable<int> id;
-
         [Required]
         [Range(1, long.MaxValue)]
         public long Size { get; set; }

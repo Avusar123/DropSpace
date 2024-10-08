@@ -103,9 +103,9 @@ namespace DropSpace.Services
 
                 session.Members.Remove(member);
 
-                await Update(session);
-
                 await eventTransmitter.FireEvent(new UserLeftEvent(session, userId));
+
+                await Update(session);
 
                 if (session.Members.Count == 0)
                 {

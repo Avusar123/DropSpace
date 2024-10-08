@@ -55,7 +55,7 @@
 
         var id = await GetFirstSessionIdOrCreate();
 
-        navigationManager.NavigateTo($"/session/{id}");
+        navigationManager.NavigateTo($"/session/{id}", true);
     }
 
     private async Task OnLogin()
@@ -68,7 +68,7 @@
 
             var id = await GetFirstSessionIdOrCreate();
 
-            navigationManager.NavigateTo($"/session/{id}");
+            navigationManager.NavigateTo($"/session/{id}", true);
         } catch (ApiException ex)
         {
             if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)

@@ -12,10 +12,14 @@ namespace DropSpace.SignalRHubs
     public class SessionsHub(
         ISessionService sessionService,
         IInviteCodeStore inviteCodeStore,
-        IConnectionIdStore connectionIdStore) : Hub
+        IConnectionIdStore connectionIdStore,
+        ILogger<SessionsHub> logger) : Hub
     {
         public override async Task OnConnectedAsync()
         {
+            logger.LogDebug("Клиент {UserIdentifier} с {ConnectionId} присоединился к SessionsHub",
+                Context.UserIdentifier, Context.ConnectionId);
+
 
             if (Context.UserIdentifier == null)
             {
@@ -29,6 +33,9 @@ namespace DropSpace.SignalRHubs
 
         public override Task OnDisconnectedAsync(Exception? exception)
         {
+            logger.LogDebug("Клиент {UserIdentifier} с {ConnectionId} вышел из SessionsHub",
+                Context.UserIdentifier, Context.ConnectionId);
+
             inviteCodeStore.RemoveUserId(Context.UserIdentifier!);
 
             connectionIdStore.Remove(Context.UserIdentifier!);

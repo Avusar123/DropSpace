@@ -1,4 +1,5 @@
 ﻿using DropSpace.Contracts.Dtos;
+using DropSpace.Controllers.Filters;
 using DropSpace.Events.Events;
 using DropSpace.Events.Interfaces;
 using DropSpace.Extensions;
@@ -57,7 +58,7 @@ namespace DropSpace.Services
                 //    });
             }
         }
-
+        
         public async Task<List<FileModelDto>> GetAllFiles(Guid sessionId)
         {
             return (await fileStore.GetAll(sessionId))
