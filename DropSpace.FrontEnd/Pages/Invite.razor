@@ -1,0 +1,44 @@
+﻿@page "/invite/{userCode}"
+@using BlazorBootstrap
+@using DropSpace.FrontEnd.Utils
+@using DropSpace.FrontEnd.Utils.Interfaces
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager navigationManager
+@inject IHubConnectionProvider hubConnectionProvider
+@inject EventTransmitter eventTransmitter
+@layout InviteLayout
+<NavMenu OnNavigatingToSession="SendInvite" OnMenuClicked=@(() => navigationManager.NavigateTo("/")) />
+
+@code {
+    [Parameter]
+    public string userCode { get; set; } = null!;
+
+    private HubConnection hubConnection = null!;
+
+    private async Task SendInvite(Guid sessionId)
+    {
+        hubConnection = await hubConnectionProvider.GetOrCreateConnection("SessionNotification");
+
+        try
+        {
+            await hubConnection.InvokeAsync("SendInviteByCode", userCode, sessionId);
+
+            navigationManager.NavigateTo($"/session/{sessionId}");
+        }
+        catch (Exception ex)
+        {
+            var message = ex.Message.Split(":").Last();
+            var toastType = ToastType.Danger;
+
+            await eventTransmitter.InvokeAsync("ShowToast", new ToastMessage()
+            {
+                Type = toastType,
+                AutoHide = true,
+                Message = message
+            });
+        }
+
+        
+
+    }
+}

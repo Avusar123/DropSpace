@@ -1,4 +1,5 @@
-﻿@model RegisterModel
+﻿@using DropSpace.Contracts.Models
+@model RegisterModel
 
 @{
     ViewData["Title"] = "Log in";
@@ -10,7 +11,7 @@
 <div class="row align-items-center justify-content-center w-100 h-100">
     <div class="col-6">
         <section>
-            <form method="post" asp-controller="Auth" asp-action="Register" asp-route-ReturnUrl="@Model.ReturnUrl">
+            <form method="post" asp-controller="Auth" asp-action="Register">
                 <div class="form-floating mb-3">
                     <input asp-for="Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
                     <label asp-for="Email" class="form-label"></label>
@@ -21,12 +22,12 @@
                     <label asp-for="Password" class="form-label">Пароль</label>
                     <span asp-validation-for="Password" class="text-danger"></span>
                 </div>
-                <div class="form-floating mb-3">
+@*                 <div class="form-floating mb-3">
                     <input asp-for="ConfirmPassword" class="form-control" autocomplete="confirm-password" aria-required="true" placeholder="пароль" />
                     <label asp-for="ConfirmPassword" class="form-label">Подтверждение пароля</label>
                     <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
-                </div>
-                <input hidden asp-for="ReturnUrl" value="@Model.ReturnUrl" />
+                </div> *@
+                @* <input hidden asp-for="ReturnUrl" value="@Model.ReturnUrl" /> *@
                 <div>
                     <button id="login-submit" style="margin: 0 0 15px 0" type="submit" class="w-100 btn btn-lg btn-primary">Продолжить</button>
                 </div>
@@ -34,7 +35,7 @@
         </section>
         <div asp-validation-summary="All" class="text-danger text-center validation-div m-3" role="alert"></div>
         <div class="text-center">
-            <a asp-action="Login" asp-controller="Auth" asp-route-ReturnUrl="@Model.ReturnUrl">Перейти к логину</a>
+            <a asp-action="Login" asp-controller="Auth">Перейти к логину</a>
         </div>
         
     </div>

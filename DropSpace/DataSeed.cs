@@ -1,8 +1,6 @@
 ﻿using DropSpace.Models.Data;
-using DropSpace.Services;
 using DropSpace.Stores.Interfaces;
 using Microsoft.AspNetCore.Identity;
-using System.Security.Claims;
 
 namespace DropSpace
 {
@@ -35,50 +33,11 @@ namespace DropSpace
                     Name = "OneTimeUser",
                     MaxSessions = 1,
                     MaxSize = (long)1000 * 1024 * 1024,
-                    SessionDuration = (int)TimeSpan.FromMinutes(5).TotalSeconds
+                    SessionDuration = (int)TimeSpan.FromMinutes(10).TotalSeconds
                 };
 
                 await roleManager.CreateAsync(permanentUserRole);
                 await roleManager.CreateAsync(oneTimeUserRole);
-
-            }
-
-            if (userManager.Users.Count() == 0)
-            {
-
-                var user = new IdentityUser() 
-                { 
-                    Email = "test@gmail.com", 
-                    UserName = "test@gmail.com" 
-                };
-
-
-                var result = await userManager.CreateAsync(user, "Nitroxwar123!");
-
-                if (!result.Succeeded)
-                {
-                    throw new Exception("Seed data error");
-                }
-
-                await userManager.AddToRoleAsync(user, "PermanentUser");
-
-
-                var session = new Session()
-                {
-                    Id = Guid.NewGuid(),
-                    Created = DateTime.Now,
-                    Duration = TimeSpan.FromMinutes(9999),
-                    MaxSize = 1000,
-                    Members = new List<SessionMember>()
-                    {
-                        new() { UserId = user.Id }
-                    },
-                    Files = [],
-                    PendingUploads = [],
-                    Name = "Test"
-                };
-                
-                await sessionStore.CreateAsync(session);
 
             }
         }

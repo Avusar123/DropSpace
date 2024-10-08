@@ -1,0 +1,83 @@
+﻿@page "/"
+@using BlazorBootstrap
+@using DropSpace.Contracts.Dtos
+@using DropSpace.FrontEnd.Services
+@using DropSpace.FrontEnd.Utils
+@using DropSpace.FrontEnd.Utils.Interfaces
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager navigation
+@inject AuthManager authProvider;
+@inject IHubConnectionProvider hubConnectionProvider
+@implements IDisposable
+<PageTitle>Главная</PageTitle>
+
+<div class="d-flex flex-column align-items-center justify-content-center py-3">
+    <QRCode @ref="qrCodeComponent"/>
+    <h1 id="invite-code" class="invite-code" style="font-size: 3em; cursor: default;">@inviteCode</h1>
+    <p class="subtitle fs-5 p-3 text-center" style="letter-spacing: normal">Отсканируйте этот QR-код или используйте уникальный код ниже, чтобы войти в удаленную сессию.</p>
+</div>
+
+<Offcanvas @ref="offcanvas" Title="Приглашение в сессию" Placement="Placement.Bottom" IsScrollable="true" UseStaticBackdrop="true">
+    <BodyTemplate>
+        @if (sessionToJoin != null)
+        {
+            <div class="d-flex justify-content-between p-3">
+                <p>@sessionToJoin.Name</p>
+                <div>
+                    <Button Color="ButtonColor.Success" @onclick="Accept" Outline="true">Принять</Button>
+                    <Button Color="ButtonColor.Danger" Outline="true" @onclick="() => offcanvas?.HideAsync()!">Отклонить</Button>
+                </div>
+            </div>
+        }
+    </BodyTemplate>
+</Offcanvas>
+
+@code {
+    private Offcanvas offcanvas;
+
+    private SessionDto sessionToJoin;
+
+    public void Dispose()
+    {
+        if (hubConnection != null && hubConnection.State == HubConnectionState.Connected)
+            hubConnection.Remove("NewInvite");
+    }
+
+    private HubConnection hubConnection;
+
+    private string inviteCode = "";
+
+    private QRCode qrCodeComponent;
+
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            hubConnection = await hubConnectionProvider.GetOrCreateConnection("SessionNotification");
+
+            inviteCode = await hubConnection.InvokeAsync<string>("GetInviteCode");
+
+            if (inviteCode != null)
+            {
+                StateHasChanged();
+                qrCodeComponent.GenerateQRCode($"{navigation.BaseUri}invite/{inviteCode}");
+            }
+
+            hubConnection.On<SessionDto>("NewInvite", async (session) =>
+            {
+                sessionToJoin = session;
+                StateHasChanged();
+                await offcanvas.ShowAsync();
+            });
+        }
+    }
+    private void Accept(MouseEventArgs e)
+    {
+        if (sessionToJoin == null)
+        {
+            return;
+        }
+
+        navigation.NavigateTo($"/session/{sessionToJoin.Id}");
+    }
+}

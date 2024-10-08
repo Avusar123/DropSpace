@@ -1,0 +1,9 @@
+﻿@inherits NavLink
+<a @attributes="@AdditionalAttributes" class="@CssClass" @onclick="OnClick" @onclick:preventDefault="true">
+    @ChildContent
+</a>
+
+@code {
+    [Parameter]
+    public EventCallback<MouseEventArgs> OnClick { get; set; }
+}

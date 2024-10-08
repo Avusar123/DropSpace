@@ -1,5 +1,4 @@
 using DropSpace;
-using DropSpace.DataManagers;
 using DropSpace.Events;
 using DropSpace.Events.Events;
 using DropSpace.Events.Handlers;
@@ -7,54 +6,69 @@ using DropSpace.Events.Interfaces;
 using DropSpace.Files;
 using DropSpace.Files.Interfaces;
 using DropSpace.Jobs;
+using DropSpace.JWTs;
 using DropSpace.Models.Data;
-using DropSpace.Providers;
 using DropSpace.Requirements;
+using DropSpace.RSAKeyProviders;
 using DropSpace.Services;
 using DropSpace.Services.Interfaces;
 using DropSpace.SignalRHubs;
 using DropSpace.Stores;
 using DropSpace.Stores.Interfaces;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
+using DropSpace.Utils;
+using DropSpace.Utils.Interfaces;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Microsoft.OpenApi.Models;
 using Quartz;
-using Quartz.AspNetCore;
 using System.Security.Claims;
-using System.Text.Encodings.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-builder.Services.AddScoped<ClaimsFactory>();
+builder.Services.AddScoped<JWTFactory>();
 builder.Services.AddHostedService<DataSeed>();
 builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddDbContext<ApplicationContext>(options => options.UseInMemoryDatabase("InMemory"));
 builder.Services.AddScoped<IAuthorizationHandler, MemberRequirementAuthorizationHandler>();
 builder.Services.AddScoped<IFileFlowCoordinator, FileFlowCoordinator>();
 builder.Services.AddSingleton<IFileVault, FileVault>();
-builder.Services.AddSingleton<IInviteCodeStore, InMemoryInviteCodeStore>();
+builder.Services.AddSingleton<IInviteCodeStore, CasheInviteCodeStore>();
 builder.Services.AddScoped<ISessionStore, SessionStore>();
 builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<IFileStore, FileStore>();
 builder.Services.AddScoped<IPendingUploadStore, PendingUploadStore>();
-builder.Services.AddSingleton<IConnectionIdStore, InMemoryConnectionIdStore>();
+builder.Services.AddSingleton<IConnectionIdStore, CasheConnectionIdStore>();
 builder.Services.AddSingleton<IEventTransmitter, EventTransmitter>();
 builder.Services.AddScoped<IEventHandler<UserJoinedEvent>, UserJoinedEventHandler>();
-builder.Services.AddScoped<IEventHandler<FileListChangedEvent>, FileListChangedEventHandler>();
 builder.Services.AddScoped<IEventHandler<UserLeftEvent>, UserLeftEventHandler>();
+builder.Services.AddScoped<IEventHandler<FileUpdatedEvent>, NewChunkUploadedEventHandler>();
 builder.Services.AddScoped<IEventHandler<SessionExpiredEvent>, SessionExpiredEventHandler>();
-builder.Services.AddScoped<IEventHandler<NewChunkUploadedEvent>, NewChunkUploadedEventHandler>();
+builder.Services.AddSingleton(typeof(ISeparetedCashe<>), typeof(SeparetedCashe<>));
+builder.Services.AddSingleton<IRSAKeyProvider, RSAFromFileKeyProvider>();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAllOrigins",
+        builder =>
+        {
+            builder.WithOrigins("https://localhost:7297")
+                       .AllowAnyHeader()
+                       .AllowAnyMethod()
+                       .AllowCredentials();
+        });
+});
 
 builder.Services.AddQuartz(q =>
 {
-    q.AddJob<DeleteExpiredSessionsJob>(opts => 
+    q.AddJob<DeleteExpiredSessionsJob>(opts =>
     opts.WithIdentity("DeleteExpired", "Session")
         .RequestRecovery());
 
@@ -87,26 +101,38 @@ builder.Services.AddQuartz(q =>
         })
         .StartNow();
     });
-
-    q.AddJob<DeleteFilesWithoutReferencesJob>(opts =>
-    opts.WithIdentity("DeleteFiles", "Files")
-        .RequestRecovery());
-
-    q.AddTrigger(trigger =>
-    {
-        trigger.ForJob("DeleteFiles", "Files")
-        .WithSimpleSchedule(shedule =>
-        {
-            shedule
-            .WithIntervalInSeconds(60)
-            .WithMisfireHandlingInstructionNextWithRemainingCount()
-            .RepeatForever();
-        })
-        .StartNow();
-    });
 });
 
 builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "Введите токен в формате: Bearer {токен}",
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
+});
+
 
 builder.Services.AddIdentity<IdentityUser, UserPlanRole>(options =>
 {
@@ -119,11 +145,6 @@ builder.Services.AddDataProtection()
             .PersistKeysToFileSystem(new DirectoryInfo(@"C:\keys\"))
             .SetApplicationName("DropSpace");
 
-builder.Services.ConfigureApplicationCookie(options =>
-{
-    options.ForwardSignIn = CookieAuthenticationDefaults.AuthenticationScheme;
-});
-
 builder.Services.AddRateLimiter(_ => _
     .AddFixedWindowLimiter(policyName: "fixed", options =>
     {
@@ -132,22 +153,66 @@ builder.Services.AddRateLimiter(_ => _
         options.QueueLimit = 2;
     }));
 
-
-builder.Services.AddAuthentication(
-        options =>
-        {
-            options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-            options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-            options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-        }
-    )
-    .AddScheme<CookieAuthenticationOptions, ChooseAuthenticationHandler>(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+{
+    options.TokenValidationParameters = new()
     {
-        options.LoginPath = "/Auth/Login";
-    });
+        ValidateAudience = false,
+        ValidateIssuer = false,
+        IssuerSigningKey = new RSAFromFileKeyProvider(builder.Configuration).GetKey()
+    };
 
+    options.Events = new JwtBearerEvents()
+    {
+        OnMessageReceived = (context) =>
+        {
+            var path = context.HttpContext.Request.Path;
+            if (path.Value.Contains("/hubs/"))
+            {
+                var accessToken = context.Request.Query["access_token"];
 
-builder.Services.AddSignalR();
+                context.Token = accessToken;
+            }
+
+            return Task.CompletedTask;
+        }
+    };
+}).AddJwtBearer("refresh", options =>
+{
+    options.TokenValidationParameters = new()
+    {
+        ValidateAudience = false,
+        ValidateIssuer = false,
+        IssuerSigningKey = new RSAFromFileKeyProvider(builder.Configuration).GetKey()
+    };
+
+    options.Events = new JwtBearerEvents()
+    {
+        OnMessageReceived = (ctx) =>
+        {
+            var dataProtectionProvider = ctx.HttpContext.RequestServices.GetRequiredService<IDataProtectionProvider>();
+            var protector = dataProtectionProvider.CreateProtector("refresh");
+
+            if (!ctx.Request.Cookies.ContainsKey("refreshToken"))
+                ctx.Fail(new NullReferenceException("Токен не задан!"));
+            else
+            {
+                ctx.Token = protector.Unprotect(ctx.Request.Cookies["refreshToken"]);
+            }
+
+            return Task.CompletedTask;
+        }
+    };
+});
+
+builder.Services.AddMemoryCache(options =>
+{
+    options.TrackStatistics = true;
+});
 
 builder.Services.AddAuthorization(options =>
 {
@@ -159,8 +224,15 @@ builder.Services.AddAuthorization(options =>
         .RequireClaim("sessionDuration")
         .RequireClaim("maxFilesSize")
         .Build();
+
+    options.AddPolicy("refresh", pb =>
+    {
+        pb.AddAuthenticationSchemes("refresh");
+        pb.RequireClaim("type", "refresh");
+    });
 });
 
+builder.Services.AddSignalR(options => options.EnableDetailedErrors = true);
 
 var app = builder.Build();
 
@@ -170,7 +242,17 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Error");
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
+} else
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "DropSpace");
+        c.RoutePrefix = string.Empty;
+    });
 }
+
+app.UseCors("AllowAllOrigins");
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
@@ -179,9 +261,9 @@ app.UseRouting();
 
 app.UseRateLimiter();
 
-app.MapHub<SessionsHub>("/Session/Subscribe");
-
 app.UseAuthorization();
+
+app.MapHub<SessionsHub>("/hubs/Sessions");
 
 app.MapControllerRoute(
     name: "default",

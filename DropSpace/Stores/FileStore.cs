@@ -9,7 +9,8 @@ namespace DropSpace.Stores
     {
         public async Task<Guid> CreateAsync(FileModel fileModel)
         {
-            fileModel.Id = Guid.NewGuid();
+            if (fileModel.Id == Guid.Empty)
+                fileModel.Id = Guid.NewGuid();
 
             applicationContext.Files.Add(fileModel);
 
@@ -22,7 +23,7 @@ namespace DropSpace.Stores
         {
             var file = applicationContext.Files.SingleOrDefault(f => f.Id == id);
 
-            if (file != null) 
+            if (file != null)
             {
                 applicationContext.Files.Remove(file);
             }
@@ -33,13 +34,19 @@ namespace DropSpace.Stores
         public async Task<List<FileModel>> GetAll(Guid sessionId)
         {
             return await applicationContext.Files
+                .Include(file => file.PendingUpload)
                 .Where(file => file.SessionId == sessionId)
                 .ToListAsync();
         }
 
         public async Task<FileModel> GetById(Guid id)
         {
-            return await (from f in applicationContext.Files where f.Id == id select f).FirstAsync();
+            return await applicationContext
+                                    .Files
+                                    .Include(file => file.PendingUpload)
+                                    .Where(file => file.Id == id)
+                                    .FirstOrDefaultAsync()
+                                        ?? throw new NullReferenceException("Файл не найден!");
         }
 
         public async Task Update(Session session)

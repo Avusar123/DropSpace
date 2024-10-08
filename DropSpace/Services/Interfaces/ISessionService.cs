@@ -1,5 +1,5 @@
-﻿using DropSpace.Models.Data;
-using DropSpace.Models.DTOs;
+﻿using DropSpace.Contracts.Dtos;
+using DropSpace.Models.Data;
 using System.Security.Claims;
 
 namespace DropSpace.Services.Interfaces
@@ -14,5 +14,6 @@ namespace DropSpace.Services.Interfaces
         Task LeaveSession(ClaimsPrincipal claimsPrincipal, Guid key);
         Task Update(Session entity);
         Task<bool> CanSave(Guid sessionId, long size);
+        Task ThrowIfCannotJoin(ClaimsPrincipal claimsPrincipal);
     }
 }

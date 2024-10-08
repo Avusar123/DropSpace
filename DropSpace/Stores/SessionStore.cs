@@ -22,7 +22,7 @@ namespace DropSpace.Stores
         {
             var session = await applicationContext.Sessions.FirstOrDefaultAsync(s => s.Id == id);
 
-            if (session != null) 
+            if (session != null)
             {
                 applicationContext.Remove(session);
             }
@@ -48,6 +48,7 @@ namespace DropSpace.Stores
             return (await applicationContext
                 .Sessions
                 .Include(session => session.Files)
+                    .ThenInclude(file => file.PendingUpload)
                 .Include(session => session.Members)
                 .Where(session => (session.Created + session.Duration > DateTime.Now) || includeExpired)
                 .FirstOrDefaultAsync(s => s.Id == id)) ?? throw new NullReferenceException("Сессия не найдена!");

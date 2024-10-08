@@ -1,0 +1,133 @@
+﻿@using DropSpace.Contracts.Dtos
+@using DropSpace.FrontEnd.Extensions
+@using DropSpace.FrontEnd.Utils
+@using DropSpace.FrontEnd.Utils.Interfaces
+@using Microsoft.AspNetCore.SignalR.Client
+@using System.Security.Claims
+@inject AuthManager tokenProvider
+@inject ISessionService sessionService
+@inject NavigationManager navigationManager
+@inject IAuthService authService
+@inject EventTransmitter eventTransmitter
+@inject IHubConnectionProvider hubConnectionProvider
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand text-primary" href="">DROPSPACE</a>
+        <button title="Navigation menu" @onclick="async (e) => await OnMenuClicked.InvokeAsync(e)" data-bs-toggle="collapse" data-bs-target="#collapseNav" class="navbar-toggler">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+<div id="collapseNav" class="collapse show nav-scrollable flex-grow-1 flex-column">
+    <nav class="d-flex flex-column sidebar-nav flex-grow-1">
+        <div class="nav-item px-3">
+            @foreach (var session in sessions)
+            {
+                <NavLinkWithCallback class="nav-link fs-6" OnClick="async (e) => await OnNavigatingToSession.InvokeAsync(session.Id)!" href="@($"session/{session.Id}")">
+                    @session.Name
+                </NavLinkWithCallback>
+            }
+        </div>
+    </nav>
+    <div class="text-white p-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <p class="subtitle m-0">@currentSessions / @maxSessions</p>
+            <i class="fa-solid fa-right-from-bracket btn btn-dark" @onclick="Leave"></i>
+        </div>
+
+        <div>
+            <hr />
+            <button type="button" class="btn btn-dark w-100" data-bs-toggle="modal" data-bs-target="#createSessionModal">
+                Добавить сессию
+            </button>
+        </div>
+    </div>
+</div>
+
+
+@code {
+        [Parameter]
+        public EventCallback<Guid> OnNavigatingToSession { get; set; }
+
+        [Parameter]
+        public EventCallback<MouseEventArgs> OnMenuClicked { get; set; }
+
+        int maxSessions = 0;
+
+        int currentSessions = 0;
+
+        List<SessionDto> sessions = new();
+
+        HubConnection hubConnection;
+
+    protected async override Task OnInitializedAsync()
+    {
+        if (!OnNavigatingToSession.HasDelegate)
+
+        OnNavigatingToSession = EventCallback.Factory.Create<Guid>(this, (sessionId) =>
+        {
+            navigationManager.NavigateTo($"session/{sessionId}");
+        });
+
+        var claims = await tokenProvider.GetClaims();
+
+        sessions = await sessionService.GetAll();
+
+        currentSessions = sessions.Count;
+
+        maxSessions = claims.GetValue<int>("maxSessions");
+
+        eventTransmitter.On<SessionDto>("NewSession", AddSession);
+
+        eventTransmitter.On<Guid>("SessionRemoved", RemoveSession);
+
+        hubConnection = await hubConnectionProvider.GetOrCreateConnection("SessionNotification");
+
+        hubConnection.On<Guid>("SessionExpired", async (sessionId) =>
+        {
+            await RemoveSession(sessionId);
+        });
+    }
+
+    public Task AddSession(SessionDto session)
+    {
+        if (sessions.Any(s => s.Id == session.Id))
+        {
+            return Task.CompletedTask;
+        }
+
+        sessions.Add(session);
+
+        currentSessions = sessions.Count;
+
+        StateHasChanged();
+
+        return Task.CompletedTask;
+    }
+
+    public Task RemoveSession(Guid sessionId)
+    {
+
+        var session = sessions.FirstOrDefault(s => s.Id == sessionId);
+
+        if (session == null)
+        {
+            return Task.CompletedTask;
+        }
+
+        sessions.Remove(session);
+
+        currentSessions = sessions.Count;
+
+        StateHasChanged();
+
+        return Task.CompletedTask;
+    }
+
+    private async Task Leave()
+    {
+        await authService.Leave();
+
+        navigationManager.NavigateTo("/login");
+    }
+}

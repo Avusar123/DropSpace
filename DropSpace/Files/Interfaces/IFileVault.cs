@@ -4,20 +4,16 @@
     {
         Task<bool> CanFit(long size);
 
-        Task SaveData(string hash, Stream stream);
+        Task SaveData(string fileId, Stream stream);
 
-        Task<byte[]> GetFileChunk(string hash, long start, long size);
+        Task<byte[]> GetFileChunk(string fileId, long start, long size);
 
-        Task<bool> ContainsFileWithHash(string hash);
+        Task<bool> ContainsFileWithId(string fileId);
 
-        Task<bool> IsFileCompleted(string hash);
+        Task<FileStream> GetFileStream(string fileId, FileMode fileMode);
 
-        Task<FileStream> GetFileStream(string hash, FileMode fileMode); 
+        Task DeleteAsync(string fileId);
 
-        Task DeleteAsync(string hash);
-
-        Task<List<string>> GetAllFilesHash();
-
-        Task<DateTime> GetFileCreatedTime(string hash);
+        Task<List<string>> GetAllFileIds();
     }
 }

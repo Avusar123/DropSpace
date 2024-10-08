@@ -1,5 +1,4 @@
-﻿using DropSpace.Models.Data;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
@@ -19,8 +18,8 @@ namespace DropSpace.Requirements
                 return;
             }
 
-            var member = await applicationContext.Members.FirstOrDefaultAsync(member => 
-            member.UserId == userIdClaim.Value 
+            var member = await applicationContext.Members.FirstOrDefaultAsync(member =>
+            member.UserId == userIdClaim.Value
             && member.SessionId == resource);
 
             if (member == null)

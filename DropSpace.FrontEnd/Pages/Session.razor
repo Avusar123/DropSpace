@@ -1,0 +1,308 @@
+﻿@page "/session/{sessionId}"
+@using BlazorBootstrap
+@using DropSpace.Contracts.Dtos
+@using DropSpace.FrontEnd.Extensions
+@using DropSpace.FrontEnd.Utils
+@using DropSpace.FrontEnd.Utils.Interfaces
+@using Microsoft.AspNetCore.SignalR.Client
+@using Refit
+@implements IDisposable
+@inject NavigationManager navigation
+@inject IHubConnectionProvider hubConnectionProvider
+@inject EventTransmitter eventTransmitter 
+@inject ISessionService sessionService
+@inject IJSRuntime JSRuntime;
+@if (session == null)
+{
+    <p class="p-3">Загрузка..</p>
+} else
+{
+    <PageTitle>@session.Name</PageTitle>
+
+    <nav class="navbar navbar-dark w-100 p-3 w-100 bg-dark top-row">
+        <div class="navbar-nav w-100 mr-auto flex-row align-items-center justify-content-between">
+            <div class="nav-item text-white d-flex align-items-center gap-3" style="cursor: default">
+                <div>
+                    <span id="memberCount">@membersCount</span>
+                    <i class="fa-regular fa-user"></i>
+                </div>
+                <div class="text-truncate">
+                    @session.Name
+                </div>
+            </div>
+            <ul class="gap-4 m-0" style="display: flex;">
+                <li class="nav-item text-white flex-column align-items-center" style="cursor: default; display: flex;">
+                    <div>
+                        <span id="session-size">0</span> / @session.MaxSizeMb
+                        <span class="subtitle" style="letter-spacing: 0px; font-size: 0.7em; margin: 0 0 0 0.5em">MB</span>
+                    </div>
+                    <div class="subtitle nav-subtitle" style="font-size: 0.7em; letter-spacing: 1px">Максимальный объем</div>
+                </li>
+                <li class="nav-item text-white flex-column align-items-center justify-content-center" style="cursor: default; display: flex;">
+                    <div id="time-counter">@remainingTime.ToString(@"hh\:mm\:ss")</div>
+                    <div class="subtitle nav-subtitle" style="font-size: 0.7em; letter-spacing: 1px">Оставшееся время</div>
+                </li>
+                <li class="nav-item align-items-center justify-content-center d-flex flex-wrap">
+                    <i class="fa-solid fa-share btn btn-dark fs-6" id="share-button" data-bs-toggle="modal" data-bs-target="#shareModal"></i>
+                    <i class="fa-solid fa-right-from-bracket btn btn-dark fs-6" id="leave-button" @onclick="Leave"></i>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="d-flex flex-column flex-grow-1">
+        <div class="p-4 d-flex gap-3 flex-wrap container-fluid file-container flex-grow-1 align-items-start">
+            <div class="add-file-button file btn-outline-dark btn d-flex flex-column align-items-center justify-content-center p-2" style="">
+                <div class="d-flex w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
+                </div>
+                <div class="d-flex flex-column w-100 align-items-center justify-content-center" style="flex: 0 0 33%"><i class="fa-regular fa-plus" style="font-size: 6em"></i></div>
+                <div class="d-flex w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
+                </div>
+            </div>
+        </div>
+        <div class="collapse" id="filesActionsNavbar">
+            <div class="bg-dark p-4">
+                <h5 class="text-white h4 mb-4" id="files-counter"></h5>
+                <div class="row gap-4">
+                    <button id="file-download" type="button" class="btn btn-outline-primary" style="width: 10em">
+                        <i class="fa-solid fa-arrow-down"></i> Скачать
+                    </button>
+                    <button id="file-delete" type="button" class="btn btn-outline-danger" style="width: 10em">
+                        <i class="fa-solid fa-trash"></i> Удалить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="shareModal" tabindex="-1" role="dialog" aria-labelledby="shareModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header fs-3">
+                    <h5 class="modal-title" id="shareModalTitle">Пригласить участника</h5>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center">
+                        <QRCode @ref="qrCodeComponent" />
+                    </div>
+                    <div id="or" class="text-center my-3"><span>ИЛИ</span></div>
+                    <div class="code-input-container my-3" data-button="inviteUser">
+                        <input @ref="codeInputs[0]" @onkeyup="(args) => OnCodeKeyPressed(args, 0)" @oninput="(args) => OnCodeInput(args, 0)" class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
+                        <input @ref="codeInputs[1]" @onkeyup="(args) => OnCodeKeyPressed(args, 1)" @oninput="(args) => OnCodeInput(args, 1)" class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
+                        <input @ref="codeInputs[2]" @onkeyup="(args) => OnCodeKeyPressed(args, 2)" @oninput="(args) => OnCodeInput(args, 2)" class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
+                        <input @ref="codeInputs[3]" @onkeyup="(args) => OnCodeKeyPressed(args, 3)" @oninput="(args) => OnCodeInput(args, 3)" class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
+                        <input @ref="codeInputs[4]" @onkeyup="(args) => OnCodeKeyPressed(args, 4)" @oninput="(args) => OnCodeInput(args, 4)" class="border code-input form-control" maxlength="1" autocorrect="off" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus="" contenteditable="" placeholder="" />
+                    </div>
+                    <p class="my-3 text-center subtitle" style="letter-spacing: normal">Чтобы войти с другого устройства отсканируйте QR-код или введите комбинацию символов, указанную на главной странице приглашаемого устройства.</p>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button @ref="sendButton" @onclick="Invite" id="inviteUser" type="button" class="btn btn-outline-primary" disabled>Отправить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <input multiple="multiple" type="file" id="fileInput" style="display: none;" />
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string sessionId { get; set; }
+
+    private Timer remainingTimer;
+
+    private ElementReference[] codeInputs = new ElementReference[5];
+
+    private ElementReference sendButton;
+
+    private HubConnection hubConnection;
+
+    private int membersCount = 1;
+
+    private TimeSpan remainingTime;
+
+    private SessionDto? session;
+
+    private QRCode qrCodeComponent;
+
+    public void Dispose()
+    {
+        if (remainingTimer != null)
+            remainingTimer.Dispose();
+
+        hubConnection.Remove("UserLeft");
+
+        hubConnection.Remove("UserJoined");
+
+        session = null;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Guid.TryParse(sessionId, out var id))
+            navigation.NavigateTo("/");
+
+        hubConnection = await hubConnectionProvider.GetOrCreateConnection("SessionNotification");
+
+        Dispose();
+
+        hubConnection.On("UserLeft", async (int membersCount) =>
+        {
+            this.membersCount = membersCount;
+
+            StateHasChanged();
+
+            await eventTransmitter.InvokeAsync<ToastMessage>("ShowToast", new()
+            {
+                AutoHide = true,
+                Type = ToastType.Primary,
+                Message = "Пользователь вышел из сессии"
+            });    
+        });
+
+        hubConnection.On("UserJoined", async (int membersCount) =>
+        {
+            this.membersCount = membersCount;
+
+            await eventTransmitter.InvokeAsync<ToastMessage>("ShowToast", new()
+            {
+                AutoHide = true,
+                Type = ToastType.Primary,
+                Message = "К сессии присоединился новый пользователь"
+            });
+
+            StateHasChanged();
+        });
+
+        try
+        {
+            session = await sessionService.Get(id);
+
+            await eventTransmitter.InvokeAsync("NewSession", session);
+
+            membersCount = session.MembersCount;
+
+            StateHasChanged();
+        }
+        catch (ApiException ex)
+        {
+            string message = "";
+
+            if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                var errors = ex.Content.ParseErrors().Values;
+
+                message = errors.First().First();
+            }
+
+            if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                message = "Сессия исчерпана или не существует!";
+            }
+
+            if (!string.IsNullOrEmpty(message))
+            {
+                await eventTransmitter.InvokeAsync("ShowToast", new ToastMessage()
+                {
+                    Type = ToastType.Danger,
+                    AutoHide = true,
+                    Message = message
+                });
+            }
+
+            await OnSessionRemoved();
+        }
+
+        qrCodeComponent.GenerateQRCode(navigation.Uri);
+
+        remainingTimer = new Timer(async (state) =>
+        {
+            remainingTime = session.Expired - DateTime.Now;
+            StateHasChanged();
+            if (remainingTime.TotalSeconds <= 0)
+            {
+                remainingTimer.Dispose();
+
+                await OnSessionRemoved();
+            }
+        }, null, 0, 1000);
+    }
+
+    private async Task OnCodeInput(ChangeEventArgs e, int id)
+    {
+        await JSRuntime.InvokeVoidAsync("inputCode", codeInputs[id], codeInputs, id, sendButton);
+    }
+
+    private async Task Invite()
+    {
+        var code = await JSRuntime.InvokeAsync<string>("collectCode", codeInputs);
+
+        if (code.Length != 5)
+        {
+            return;
+        }
+
+        string message = "Сообщение успешно отправлено!";
+
+        ToastType toastType = ToastType.Success;
+
+
+        try
+        {
+            await hubConnection.InvokeAsync("SendInviteByCode", code, session.Id);
+        } catch (Exception ex)
+        {
+            message = ex.Message.Split(":").Last();
+            toastType = ToastType.Danger;
+        }
+
+        await eventTransmitter.InvokeAsync("ShowToast", new ToastMessage()
+        {
+            Type = toastType,
+            AutoHide = true,
+            Message = message
+        });
+    }
+
+    private async Task OnCodeKeyPressed(KeyboardEventArgs e, int id)
+    {
+        switch (e.Key)
+        {
+            case "Backspace":
+                if (id >= 1)
+                {
+                    await codeInputs[id - 1].FocusAsync();
+                }
+                break;
+            case "ArrowRight":
+                if (id < codeInputs.Length - 1)
+                {
+                    await codeInputs[id + 1].FocusAsync();
+                }
+                break;
+            case "ArrowLeft":
+                if (id >= 1)
+                {
+                    await codeInputs[id - 1].FocusAsync();
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    private async Task Leave()
+    {
+        await sessionService.Leave(session.Id);
+
+        await OnSessionRemoved();
+    }
+
+    private async Task OnSessionRemoved()
+    {
+        if (session != null)
+        await eventTransmitter.InvokeAsync<Guid>("SessionRemoved", session.Id);
+
+        navigation.NavigateTo("/");
+    }
+}

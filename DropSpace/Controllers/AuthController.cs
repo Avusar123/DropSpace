@@ -1,56 +1,43 @@
-﻿using DropSpace.DataManagers;
-using DropSpace.Models;
+﻿using DropSpace.Contracts.Models;
+using DropSpace.JWTs;
 using DropSpace.Models.Data;
-using Microsoft.AspNetCore.Authentication;
+using DropSpace.Services.Interfaces;
+using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
-using System.Data;
-using System.Diagnostics.Metrics;
+using System.Configuration;
 using System.Security.Claims;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 namespace DropSpace.Controllers
 {
+
+    [ApiController]
     [Route("Auth")]
-    public class AuthController(ClaimsFactory claimsFactory, 
-        SignInManager<IdentityUser> signInManager, 
+    public class AuthController(JWTFactory JWTFactory,
+        IConfiguration configuration,
         UserManager<IdentityUser> userManager,
-        RoleManager<UserPlanRole> roleManager) : Controller
+        IDataProtectionProvider dataProtectionProvider) : ControllerBase
     {
         const string INVALIDLOGGINGATTEMPTMESSAGE = "Неудачная попытка входа";
 
+        private IDataProtector dataProtector = dataProtectionProvider.CreateProtector("refresh");
+
 
         [HttpPost("OneTime")]
-        public async Task<IActionResult> OneTimeRegister(string? returnUrl)
+        public async Task<ActionResult<string>> OneTimeRegister()
         {
+            var tokens = await JWTFactory.CreateTokenPair();
 
-            var identity = await claimsFactory.CreateOneTimeIdentity(CookieAuthenticationDefaults.AuthenticationScheme);
+            SetRefreshToken(tokens.RefreshToken, tokens.Expires);
 
-            var principle = new ClaimsPrincipal(identity);
-
-            return SignIn(principle, 
-                new() { 
-                    RedirectUri = returnUrl, 
-                    IsPersistent = true
-                },
-                CookieAuthenticationDefaults.AuthenticationScheme);
-        }
-
-        [HttpGet("Register")]
-        public IActionResult Register(string? returnUrl)
-        {
-            return View(new RegisterModel() { ReturnUrl = returnUrl });
+            return tokens.AccessToken;
         }
 
         [HttpPost("Register")]
-        public async Task<IActionResult> Register(RegisterModel model)
+        public async Task<ActionResult> Register(RegisterModel model)
         {
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
 
             var identityuser = new IdentityUser() { Email = model.Email, UserName = model.Email };
 
@@ -63,65 +50,75 @@ namespace DropSpace.Controllers
                     ModelState.AddModelError(string.Empty, error.Description);
                 }
 
-                return View(model);
+                return BadRequest(ModelState);
             }
 
             await userManager.AddToRoleAsync(identityuser, "PermanentUser");
 
-            model.ReturnUrl = SetIfNullReturnUrl(model.ReturnUrl);
-
-            return RedirectToAction("Login", new { returnUrl = model.ReturnUrl });
+            return Ok();
         }
 
 
 
-        [HttpPost("Login")]
-        public async Task<IActionResult> Login(LoginModel model)
+        [HttpPost]
+        public async Task<ActionResult<string>> Login(LoginModel model)
         {
-            if (!ModelState.IsValid)
-            {
-
-                return View(model);
-            }
-
             var user = await userManager.FindByEmailAsync(model.Email);
 
-            if (user == null || !await userManager.CheckPasswordAsync(user, model.Password)) 
+            string roleName = configuration.GetValue<string>("LoginUserRole")!;
+
+            if (user == null || !await userManager.CheckPasswordAsync(user, model.Password))
             {
                 ModelState.AddModelError(string.Empty, INVALIDLOGGINGATTEMPTMESSAGE);
 
-                return View(model);
+                return BadRequest(ModelState);
             }
 
-            await signInManager.SignInWithClaimsAsync(user, null,
-                (await claimsFactory.GenerateRoleAdditionalClaims("PermanentUser")));
+            var tokens = await JWTFactory.CreateTokenPair(user, roleName);
 
-            model.ReturnUrl = SetIfNullReturnUrl(model.ReturnUrl);
+            SetRefreshToken(tokens.RefreshToken, tokens.Expires);
 
-            return LocalRedirect(model.ReturnUrl);
+            return tokens.AccessToken;
         }
 
-        [HttpGet("Login")]
-        public IActionResult Login(string? returnUrl)
+        [Authorize("refresh")]
+        [HttpGet]
+        public async Task<ActionResult<string>> Refresh()
         {
-            return View(new LoginModel() { ReturnUrl = returnUrl});
+            var claims = User.Claims.ToList();
+
+            claims.Remove(claims.First(c => c.Type == "type"));
+
+            return await JWTFactory.CreateTokenFromClaims(claims);
         }
 
-        [HttpGet("Leave")]
-        public async Task<IActionResult> Leave()
+        [Authorize("refresh")]
+        [HttpDelete]
+        public async Task<ActionResult> Delete()
         {
-            await signInManager.SignOutAsync();
+            var cookieOptions = new CookieOptions()
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None
+            };
 
-            return RedirectToAction("Login", new {returnUrl = "/"});
+            Response.Cookies.Delete("refreshToken", cookieOptions);
+
+            return Ok();
         }
 
-
-        private string SetIfNullReturnUrl(string returnUrl)
+        private void SetRefreshToken(string token, DateTime expires)
         {
-            return string.IsNullOrEmpty(returnUrl) ? "/" : returnUrl;
-        }
+            var cookieOptions = new CookieOptions()
+            {
+                HttpOnly = true,
+                Secure = true,
+                Expires = expires,
+                SameSite = SameSiteMode.None
+            };
 
+            Response.Cookies.Append("refreshToken", dataProtector.Protect(token), cookieOptions);
+        }
     }
-
-    
 }

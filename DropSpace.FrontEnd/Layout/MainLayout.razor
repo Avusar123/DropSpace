@@ -1,0 +1,93 @@
+﻿@using BlazorBootstrap
+@using DropSpace.Contracts.Dtos
+@using DropSpace.Contracts.Models
+@using DropSpace.FrontEnd.Extensions
+@using DropSpace.FrontEnd.Utils
+@using DropSpace.FrontEnd.Utils.Interfaces
+@using Microsoft.AspNetCore.SignalR.Client
+@using Refit
+@inherits LayoutComponentBase
+@inject AuthManager authProvider
+@inject NavigationManager navigationManager
+@inject IHubConnectionProvider hubConnectionProvider
+@inject EventTransmitter eventTransmitter
+@inject ISessionService sessionService
+<div class="page">
+    <div class="sidebar bg-dark">
+        <NavMenu />
+    </div>
+
+    <main>
+        <article class="content">
+            @Body
+        </article>
+    </main>
+</div>
+<div class="modal fade" id="createSessionModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLongTitle">Создать сессию</h5>
+            </div>
+            <EditForm id="createSessionForm" Model="@createSessionModel" OnValidSubmit="CreateSession">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        <div class="form-floating">
+                            <InputText id="createSessionName" placeholder="Название" aria-required="true" class="form-control" @bind-Value="createSessionModel.Name" />
+                            <label class="form-label">Название</label>
+                            <ValidationMessage class="text-danger" For="@(() => createSessionModel.Name)" />
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button id="createSessionButton" type="submit" class="btn btn-outline-primary">Создать</button>
+                    </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+<Toasts class="p-3" Messages="messages" Placement="ToastsPlacement.BottomRight" />
+
+@code {
+    List<ToastMessage> messages = new List<ToastMessage>();
+
+    private CreateSessionModel createSessionModel = new();
+
+    private async Task CreateSession()
+    {
+        try
+        {
+            var session = await sessionService.Create(createSessionModel);
+
+            navigationManager.NavigateTo($"/session/{session.Id}");
+        }
+        catch (ApiException ex)
+        {
+            if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest && ex.Content != null)
+            {
+                await ShowToast(new ToastMessage()
+                {
+                    Type = ToastType.Danger,
+                    AutoHide = true,
+                    Message = ex.Content.ParseErrors().Values.First().First()
+                });
+            }
+        }
+    }
+
+    private Task ShowToast(ToastMessage toast)
+    {
+        messages.Add(toast);
+
+        StateHasChanged();
+
+        return Task.CompletedTask;
+    }
+
+    protected async override Task OnInitializedAsync()
+    {
+        await authProvider.RefreshAccess();
+
+        eventTransmitter.On<ToastMessage>("ShowToast", ShowToast);
+    }
+}

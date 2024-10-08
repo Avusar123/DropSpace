@@ -1,0 +1,180 @@
+html {
+    font-size: 14px;
+}
+
+@media (min-width: 768px) {
+    html {
+        font-size: 16px;
+    }
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+html {
+    position: relative;
+    min-height: 100%;
+}
+
+body {
+    min-height: 100vh;
+    margin: 0;
+}
+
+.validation-div ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.navbar-brand {
+    cursor: pointer;
+}
+
+
+.subtitle {
+    color: gray;
+    letter-spacing: 0.2em;
+    font-size: 1.2em
+}
+
+.fullscreen {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+.navbar-brand {
+    font-family: "Bebas Neue";
+    font-weight: 500;
+    font-style: normal;
+    transition: all 0.3s;
+    font-size: 1.5em;
+}
+
+.navbar-brand:hover {
+    opacity: 0.9;
+}
+
+.footer {
+    padding: 1em;
+}
+
+#qrcode img {
+    margin: 0 auto;
+}
+
+#or {
+    position: relative;
+}
+
+    #or span::before, #or span::after {
+        content: "";
+        position: absolute;
+        width: 45%;
+        height: 2px;
+        background-color: black;
+    }
+
+    #or span::before {
+        top: 50%;
+        right: 0;
+    }
+
+    #or span::after {
+        top: 50%;
+        left: 0;
+    }
+
+.code-input {
+    width: 50px;
+    height: 50px;
+    font-size: 1em;
+    text-transform: uppercase;
+}
+
+.code-input-container {
+    display: flex;
+    width: 100%;
+    gap: 0.5em;
+    justify-content: center;
+    align-items: center;
+}
+
+
+.nav-link {
+    color: rgb(236, 236, 236) !important;
+}
+
+.nav-link:hover {
+    background-color: rgba(255,255,255, 0.1)
+}
+
+.active {
+    color: white;
+    background-color: rgba(255,255,255, 0.2) !important;
+}
+
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-nav {
+    padding: 1em 0;
+}
+
+.btn-dark:hover {
+    background-color: rgba(255,255,255, 0.1)
+}
+
+.top-row {
+    height: 75px;
+}
+
+.file {
+    border-radius: 15px !important;
+    border-style: dashed !important;
+    border-width: 5px !important;
+    width: 150px;
+    height: 200px
+}
+
+#app {
+    min-height: 100vh;
+}
+
+.auth-container {
+    min-height: 100vh;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.toast-container {
+    z-index: 99999;
+    
+}
+
+.navbar-brand {
+    margin: 0;
+}
+
+.offcanvas {
+    height: auto !important;
+}
+.offcanvas.hiding, .offcanvas.show, .offcanvas.showing {
+    visibility: visible !important;
+}
+
+@media (max-width: 425px) {
+    .nav-subtitle {
+        display: none;
+    }
+
+    .navbar .subtitle {
+        font-size: 0.5em !important;
+        margin: 0 !important;
+    }
+}
