@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Components.WebAssembly.Http;
+﻿using DropSpace.FrontEnd.Utils.ErrorHandlers;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.WebAssembly.Http;
+using Refit;
 using System.Net;
 
 namespace DropSpace.FrontEnd.HttpHandlers
@@ -10,6 +13,13 @@ namespace DropSpace.FrontEnd.HttpHandlers
             request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
 
             var response = await base.SendAsync(request, cancellationToken);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                ErrorHandler.NotAuthorized.Handle();
+
+                return new HttpResponseMessage(System.Net.HttpStatusCode.Unauthorized);
+            }
 
             return response;
         }

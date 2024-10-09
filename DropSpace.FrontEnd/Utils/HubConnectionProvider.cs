@@ -1,4 +1,5 @@
-﻿using DropSpace.FrontEnd.Utils.Interfaces;
+﻿using DropSpace.FrontEnd.Utils.ErrorHandlers;
+using DropSpace.FrontEnd.Utils.Interfaces;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR.Client;
 using Refit;
@@ -34,12 +35,9 @@ namespace DropSpace.FrontEnd.Utils
                         {
                             await authManager.RefreshAccess();
                             return await authManager.GetToken();
-                        } catch (ApiException ex)
+                        } catch (ApiException)
                         {
-                            if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-                            {
-                                navigationManager.NavigateTo("/login", true);
-                            }
+                            ErrorHandler.NotAuthorized.Handle();
 
                             throw;
                         }

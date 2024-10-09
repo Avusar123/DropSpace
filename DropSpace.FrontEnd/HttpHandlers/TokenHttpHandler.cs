@@ -1,5 +1,6 @@
 ﻿using System.Net.Http.Headers;
 using DropSpace.FrontEnd.Utils;
+using DropSpace.FrontEnd.Utils.ErrorHandlers;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.WebAssembly.Http;
 using Refit;
@@ -22,11 +23,11 @@ namespace DropSpace.FrontEnd.HttpHandlers
                     {
                         await tokenProvider.RefreshAccess();
                     }
-                    catch (ApiException ex) 
+                    catch (ApiException ex)
                     {
                         if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                         {
-                            navigationManager.NavigateTo("/login", true);
+                            ErrorHandler.NotAuthorized.Handle();
                             return new HttpResponseMessage(System.Net.HttpStatusCode.Unauthorized);
                         }
                     }
