@@ -178,3 +178,12 @@ body {
         margin: 0 !important;
     }
 }
+
+.uploaded-file:hover, .pending-upload:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+    border-width: 0 !important;
+}
+
+.uploaded-file, .pending-upload {
+    transition: border-width linear 0.1s
+}

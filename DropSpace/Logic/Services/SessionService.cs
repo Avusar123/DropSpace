@@ -145,7 +145,8 @@ namespace DropSpace.Logic.Services
                                     return file.ByteSize;
                                 }
 
-                                return file.PendingUpload?.SendedSize ?? 0;
+                                return (file.PendingUpload?.SendedSize > 0 ? file.PendingUpload?.SendedSize : 
+                                    Math.Max(file.PendingUpload?.ChunkSize ?? 0, file.ByteSize));
                             })
                             .Sum();
 

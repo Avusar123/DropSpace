@@ -10,8 +10,10 @@ namespace DropSpace.FrontEnd.Utils
     public class HubConnectionProvider(
         IConfiguration configuration, 
         AuthManager authManager,
-        NavigationManager navigationManager) : IHubConnectionProvider
+        ErrorHandlerFactory errorHandlerFactory) : IHubConnectionProvider
     {
+        private readonly ErrorHandlerFactory errorHandlerFactory = errorHandlerFactory;
+
         ConcurrentDictionary<string, Task<HubConnection>> connections = new();
 
         public Task<HubConnection> GetOrCreateConnection(string hubName)
@@ -37,12 +39,10 @@ namespace DropSpace.FrontEnd.Utils
                             return await authManager.GetToken();
                         } catch (ApiException)
                         {
-                            ErrorHandler.NotAuthorized.Handle();
+                            await errorHandlerFactory.NotAuthorized.HandleAsync();
 
                             throw;
                         }
-                        
-           
                     };
                 })
                 .WithAutomaticReconnect()

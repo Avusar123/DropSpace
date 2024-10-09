@@ -47,7 +47,7 @@ builder.Services.AddSingleton<IConnectionIdStore, CasheConnectionIdStore>();
 builder.Services.AddSingleton<IEventTransmitter, EventTransmitter>();
 builder.Services.AddScoped<IEventHandler<UserJoinedEvent>, UserJoinedEventHandler>();
 builder.Services.AddScoped<IEventHandler<UserLeftEvent>, UserLeftEventHandler>();
-builder.Services.AddScoped<IEventHandler<FileUpdatedEvent>, NewChunkUploadedEventHandler>();
+builder.Services.AddScoped<IEventHandler<FileUpdatedEvent>, FileUpdatedEventHandler>();
 builder.Services.AddScoped<IEventHandler<SessionExpiredEvent>, SessionExpiredEventHandler>();
 builder.Services.AddSingleton(typeof(ISeparetedCashe<>), typeof(SeparetedCashe<>));
 builder.Services.AddSingleton<IRSAKeyProvider, RSAFromFileKeyProvider>();
@@ -142,14 +142,6 @@ builder.Services.AddIdentity<IdentityUser, UserPlanRole>(options =>
 builder.Services.AddDataProtection()
             .PersistKeysToFileSystem(new DirectoryInfo(@"C:\keys\"))
             .SetApplicationName("DropSpace");
-
-builder.Services.AddRateLimiter(_ => _
-    .AddFixedWindowLimiter(policyName: "fixed", options =>
-    {
-        options.PermitLimit = 8;
-        options.Window = TimeSpan.FromSeconds(15);
-        options.QueueLimit = 2;
-    }));
 
 builder.Services.AddAuthentication(options =>
 {
@@ -257,8 +249,6 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
-
-app.UseRateLimiter();
 
 app.UseAuthorization();
 

@@ -18,11 +18,13 @@ namespace DropSpace.Logic.Jobs
                     .ThenInclude(session => session.Members)
                 .Where(upload =>
                         DateTime.Now - upload.LastChunkUploaded >=
-                            TimeSpan.FromSeconds(configuration.GetValue<int>("UploadTimeOutSecs")));
+                            TimeSpan.FromSeconds(configuration.GetValue<int>("UploadTimeOutSecs")) && !upload.IsCompleted);
 
             foreach (var upload in uploads)
             {
                 applicationContext.PendingUploads.Remove(upload);
+
+                applicationContext.Files.Remove(upload.File);
 
                 await applicationContext.SaveChangesAsync();
 

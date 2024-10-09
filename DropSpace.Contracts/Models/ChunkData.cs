@@ -1,4 +1,4 @@
-﻿namespace DropSpace.Domain.Models
+﻿namespace DropSpace.Contracts.Models
 {
     public class ChunkData
     {

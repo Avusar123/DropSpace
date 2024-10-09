@@ -5,7 +5,7 @@ namespace DropSpace.FrontEnd.Utils.ErrorHandlers
 {
     public class NotAuthorizedErrorHandler(NavigationManager navigationManager) : ErrorHandler
     {
-        public override void Handle()
+        public override Task HandleAsync()
         {
             var url = navigationManager.Uri;
 
@@ -18,6 +18,8 @@ namespace DropSpace.FrontEnd.Utils.ErrorHandlers
             {
                 navigationManager.NavigateTo($"/login?returnUrl={uri.LocalPath}", true);
             }
+
+            return Task.CompletedTask;
         }
     }
 }

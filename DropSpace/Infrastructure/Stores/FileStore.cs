@@ -44,6 +44,7 @@ namespace DropSpace.Infrastructure.Stores
             return await applicationContext
                                     .Files
                                     .Include(file => file.PendingUpload)
+                                    .Include(file => file.Session)
                                     .Where(file => file.Id == id)
                                     .FirstOrDefaultAsync()
                                         ?? throw new NullReferenceException("Файл не найден!");

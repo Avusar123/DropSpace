@@ -1,11 +1,12 @@
 ﻿@page "/invite/{userCode}"
 @using BlazorBootstrap
 @using DropSpace.FrontEnd.Utils
+@using DropSpace.FrontEnd.Utils.ErrorHandlers
 @using DropSpace.FrontEnd.Utils.Interfaces
 @using Microsoft.AspNetCore.SignalR.Client
 @inject NavigationManager navigationManager
 @inject IHubConnectionProvider hubConnectionProvider
-@inject EventTransmitter eventTransmitter
+@inject ErrorHandlerFactory errorHandlerFactory
 @layout InviteLayout
 <NavMenu OnNavigatingToSession="SendInvite" OnMenuClicked=@(() => navigationManager.NavigateTo("/")) />
 
@@ -27,18 +28,7 @@
         }
         catch (Exception ex)
         {
-            var message = ex.Message.Split(":").Last();
-            var toastType = ToastType.Danger;
-
-            await eventTransmitter.InvokeAsync("ShowToast", new ToastMessage()
-            {
-                Type = toastType,
-                AutoHide = true,
-                Message = message
-            });
+            await errorHandlerFactory.HubError.HandleAsync(ex.Message);
         }
-
-        
-
     }
 }
