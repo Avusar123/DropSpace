@@ -1,30 +1,28 @@
-using DropSpace;
-using DropSpace.Events;
-using DropSpace.Events.Events;
-using DropSpace.Events.Handlers;
-using DropSpace.Events.Interfaces;
-using DropSpace.Files;
-using DropSpace.Files.Interfaces;
-using DropSpace.Jobs;
-using DropSpace.JWTs;
-using DropSpace.Models.Data;
-using DropSpace.Requirements;
-using DropSpace.RSAKeyProviders;
-using DropSpace.Services;
-using DropSpace.Services.Interfaces;
-using DropSpace.SignalRHubs;
-using DropSpace.Stores;
-using DropSpace.Stores.Interfaces;
-using DropSpace.Utils;
-using DropSpace.Utils.Interfaces;
+using DropSpace.Domain;
+using DropSpace.Infrastructure;
+using DropSpace.Infrastructure.Stores;
+using DropSpace.Infrastructure.Stores.Interfaces;
+using DropSpace.Logic.Events;
+using DropSpace.Logic.Events.Events;
+using DropSpace.Logic.Events.Handlers;
+using DropSpace.Logic.Events.Interfaces;
+using DropSpace.Logic.Files;
+using DropSpace.Logic.Files.Interfaces;
+using DropSpace.Logic.Jobs;
+using DropSpace.Logic.Services;
+using DropSpace.Logic.Services.Interfaces;
+using DropSpace.WebApi.SignalRHubs;
+using DropSpace.WebApi.Utils.Cashe;
+using DropSpace.WebApi.Utils.Interfaces;
+using DropSpace.WebApi.Utils.JWTs;
+using DropSpace.WebApi.Utils.Requirements;
+using DropSpace.WebApi.Utils.RSAKeyProviders;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Quartz;
 using System.Security.Claims;
@@ -242,7 +240,8 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Error");
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
-} else
+}
+else
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>

@@ -4,6 +4,7 @@ using DropSpace.FrontEnd.Extensions;
 using DropSpace.FrontEnd.HttpHandlers;
 using DropSpace.FrontEnd.Services;
 using DropSpace.FrontEnd.Utils;
+using DropSpace.FrontEnd.Utils.ErrorHandlers;
 using DropSpace.FrontEnd.Utils.Interfaces;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
@@ -28,7 +29,7 @@ builder.Services.AddRefitClient<IAuthService>()
 builder.Services.AddRefitClient<ISessionService>()
     .WithConfiguration(builder.Configuration)
     .AddHttpMessageHandler<TokenHttpHandler>();
-
+ErrorHandler.Initialize(builder.Services.BuildServiceProvider());
 var app = builder.Build();
 
 await app.RunAsync();

@@ -4,6 +4,7 @@
 @using DropSpace.FrontEnd.Utils
 @using Microsoft.AspNetCore.Components.Sections
 @using Refit
+@using Microsoft.AspNetCore.WebUtilities;
 @layout AuthLayout
 @inject IAuthService authService
 @inject AuthManager authProvider
@@ -39,13 +40,24 @@
 </section>
 <div asp-validation-summary="All" class="text-danger validation-div text-center m-3" role="alert"></div>
 <div class="text-center">
-    <a href="/register">Перейти к регистрации</a>
+    <a href="/register@(returnUrl != null ? $"?returnUrl={returnUrl}" : "")">Перейти к регистрации</a>
 </div>
 
 @code {
+    private string? returnUrl;
+
     private LoginModel loginModel = new LoginModel();
 
     private string validationError;
+
+    protected override void OnInitialized()
+    {
+        var uri = navigationManager.ToAbsoluteUri(navigationManager.Uri);
+        if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("returnUrl", out var _returnUrl))
+        {
+            returnUrl = _returnUrl;
+        }
+    }
 
     private async Task OnOneTime()
     {
@@ -53,9 +65,7 @@
 
         await authProvider.SaveToken(token);
 
-        var id = await GetFirstSessionIdOrCreate();
-
-        navigationManager.NavigateTo($"/session/{id}", true);
+        await MakeCallbackNavigationAsync();
     }
 
     private async Task OnLogin()
@@ -66,9 +76,8 @@
 
             await authProvider.SaveToken(token);
 
-            var id = await GetFirstSessionIdOrCreate();
+            await MakeCallbackNavigationAsync();
 
-            navigationManager.NavigateTo($"/session/{id}", true);
         } catch (ApiException ex)
         {
             if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
@@ -79,6 +88,19 @@
 
                 StateHasChanged();
             }
+        }
+    }
+
+    private async Task MakeCallbackNavigationAsync()
+    {
+        if (returnUrl != null)
+        {
+            navigationManager.NavigateTo(returnUrl, true);
+        } else
+        {
+            var id = await GetFirstSessionIdOrCreate();
+
+            navigationManager.NavigateTo($"/session/{id}", true);
         }
     }
 

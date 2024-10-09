@@ -3,6 +3,7 @@
 @using DropSpace.FrontEnd.Extensions
 @using DropSpace.FrontEnd.Utils
 @using Microsoft.AspNetCore.Components.Sections
+@using Microsoft.AspNetCore.WebUtilities
 @using Refit
 @layout AuthLayout
 @inject IAuthService authService
@@ -44,13 +45,24 @@
 </section>
 <div asp-validation-summary="All" class="text-danger validation-div text-center m-3" role="alert"></div>
 <div class="text-center">
-    <a href="/login">Перейти к входу</a>
+    <a href="/login@(returnUrl != null ? $"?returnUrl={returnUrl}" : "")">Перейти к входу</a>
 </div>
 
 @code {
+    private string? returnUrl;
+
     private RegisterModel registerModel = new RegisterModel();
 
     private string validationError;
+
+    protected override void OnInitialized()
+    {
+        var uri = navigationManager.ToAbsoluteUri(navigationManager.Uri);
+        if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("returnUrl", out var _returnUrl))
+        {
+            returnUrl = _returnUrl;
+        }
+    }
 
     private async Task OnRegister()
     {
@@ -58,7 +70,9 @@
         {
             await authService.Register(registerModel);
 
-            navigationManager.NavigateTo("/login");
+            var url = "/login" + returnUrl != null ? $"?returnUrl={returnUrl}" : "";
+
+            navigationManager.NavigateTo(url, true);
         }
         catch (ApiException ex)
         {

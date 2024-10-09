@@ -86,7 +86,7 @@
 
     protected async override Task OnInitializedAsync()
     {
-        await authProvider.RefreshAccess();
+        // await authProvider.RefreshAccess();
 
         eventTransmitter.On<ToastMessage>("ShowToast", ShowToast);
     }
