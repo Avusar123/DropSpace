@@ -4,6 +4,6 @@ namespace DropSpace.WebApi.Utils.Interfaces
 {
     public interface IRSAKeyProvider
     {
-        RsaSecurityKey GetKey();
+        RsaSecurityKey GetOrCreateKey();
     }
 }

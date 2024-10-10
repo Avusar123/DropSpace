@@ -21,7 +21,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Quartz;
@@ -34,7 +33,8 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<JWTFactory>();
 builder.Services.AddHostedService<DataSeed>();
 builder.Services.AddScoped<ISessionService, SessionService>();
-builder.Services.AddDbContext<ApplicationContext>(options => options.UseInMemoryDatabase("InMemory"));
+builder.Services.AddDbContext<ApplicationContext>(options => 
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Debug")));
 builder.Services.AddScoped<IAuthorizationHandler, MemberRequirementAuthorizationHandler>();
 builder.Services.AddScoped<IFileFlowCoordinator, FileFlowCoordinator>();
 builder.Services.AddSingleton<IFileVault, FileVault>();
@@ -140,7 +140,7 @@ builder.Services.AddIdentity<IdentityUser, UserPlanRole>(options =>
     .AddEntityFrameworkStores<ApplicationContext>();
 
 builder.Services.AddDataProtection()
-            .PersistKeysToFileSystem(new DirectoryInfo(@"C:\keys\"))
+            .PersistKeysToFileSystem(new DirectoryInfo(builder.Configuration["KeysFolder"]!))
             .SetApplicationName("DropSpace");
 
 builder.Services.AddAuthentication(options =>
@@ -153,7 +153,7 @@ builder.Services.AddAuthentication(options =>
     {
         ValidateAudience = false,
         ValidateIssuer = false,
-        IssuerSigningKey = new RSAFromFileKeyProvider(builder.Configuration).GetKey()
+        IssuerSigningKey = new RSAFromFileKeyProvider(builder.Configuration).GetOrCreateKey()
     };
 
     options.Events = new JwtBearerEvents()
@@ -177,7 +177,7 @@ builder.Services.AddAuthentication(options =>
     {
         ValidateAudience = false,
         ValidateIssuer = false,
-        IssuerSigningKey = new RSAFromFileKeyProvider(builder.Configuration).GetKey()
+        IssuerSigningKey = new RSAFromFileKeyProvider(builder.Configuration).GetOrCreateKey()
     };
 
     options.Events = new JwtBearerEvents()

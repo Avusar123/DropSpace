@@ -8,6 +8,7 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @using Contracts.Models
 @using Refit
+@using System.Collections.Concurrent
 @implements IDisposable
 @inject NavigationManager navigation
 @inject IHubConnectionProvider hubConnectionProvider
@@ -15,7 +16,8 @@
 @inject ISessionService sessionService
 @inject IFileService fileService
 @inject ErrorHandlerFactory errorHandlerFactory
-@inject IJSRuntime JSRuntime;
+@inject IJSRuntime JSRuntime
+@inject ILogger<Session> logger
 @if (session == null)
 {
     <p class="p-3">Загрузка..</p>
@@ -37,7 +39,7 @@
             <ul class="gap-4 m-0" style="display: flex;">
                 <li class="nav-item text-white flex-column align-items-center" style="cursor: default; display: flex;">
                     <div>
-                        <span id="session-size">0</span> / @session.MaxSizeMb
+                        <span id="session-size">@Math.Round(GetMbFilesSize(), 2)</span> / @session.MaxSizeMb
                         <span class="subtitle" style="letter-spacing: 0px; font-size: 0.7em; margin: 0 0 0 0.5em">MB</span>
                     </div>
                     <div class="subtitle nav-subtitle" style="font-size: 0.7em; letter-spacing: 1px">Максимальный объем</div>
@@ -63,7 +65,7 @@
                 <div class="d-flex w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
                 </div>
             </div>
-            @foreach (var file in files)
+            @foreach (var file in files.Values)
             {
                 @if (file.Upload.IsCompleted)
                 {
@@ -83,7 +85,7 @@
                     <div class="file p-2 pending-file btn-dark btn d-flex flex-column align-items-center justify-content-center" style="border-radius: 15px; width: 150px; height: 200px;">
                         <div class="d-flex flex-column w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
                             <div class="progress" style="flex: 0 0 15%; width: 75%">
-                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: @((decimal)(file.Upload.SendedSize / file.Size) * 100)%"></div>
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: @((int)((file.Upload.SendedSizeMb / file.SizeMb) * 100))%"></div>
                             </div>
                             <p><span class="sended-size">@file.Upload.SendedSizeMb</span> / @file.SizeMb <span class="subtitle" style="font-size: 0.7em; flex: 0 0 85%; letter-spacing: 1px;">MB</span></p>
                         </div>
@@ -149,7 +151,7 @@
 
     private Timer remainingTimer;
 
-    private List<FileModelDto> files = [];
+    private ConcurrentDictionary<Guid, FileModelDto> files = [];
 
     private ElementReference[] codeInputs = new ElementReference[5];
 
@@ -167,6 +169,8 @@
 
     public void Dispose()
     {
+        files = [];
+
         if (remainingTimer != null)
             remainingTimer.Dispose();
 
@@ -191,7 +195,12 @@
         {
             session = await sessionService.Get(id);
 
-            files = await fileService.GetAll(id);
+            var filesList = await fileService.GetAll(id);
+
+            foreach (var file in filesList)
+            {
+                files[file.Id] = file; 
+            }
 
             await eventTransmitter.InvokeAsync("NewSession", session);
 
@@ -265,16 +274,10 @@
 
         hubConnection.On("FileUpdated", (FileModelDto file) =>
         {
-            var fileFounded = files.FirstOrDefault(f => f.Id == file.Id);
-
-            if (fileFounded == null)
+            files.AddOrUpdate(file.Id, file, (_,_) =>
             {
-                files.Add(file);
-            } else
-            {
-                files.Remove(fileFounded);
-                files.Add(file);
-            }
+                return file;
+            });
 
             StateHasChanged();
         });
@@ -295,7 +298,9 @@
 
         using var fileStream = file.OpenReadStream(file.Size);
 
-        var fileModelDto = await fileService.CreateUpload(
+        try 
+        {
+            var fileModelDto = await fileService.CreateUpload(
             new InitiateUploadModel() 
             { 
                 Name = file.Name, 
@@ -303,32 +308,54 @@
                 Size = file.Size 
             });
 
-        byte[] buffer = new byte[Math.Min(fileModelDto.Upload.ChunkSize, fileModelDto.Size)];
+            byte[] buffer = new byte[Math.Min(fileModelDto.Upload.ChunkSize, fileModelDto.Size)];
 
-        while (await fileStream.ReadAsync(buffer) > 0)
-        {
-            try
+            while (await fileStream.ReadAsync(buffer) > 0)
             {
+                logger.LogInformation("В буфер было загружено {bytes}", buffer.Length);
+
+                logger.LogInformation("Начата загрузка на сервер");
                 fileModelDto = await fileService.UploadChunk(new UploadChunkModel() { UploadId = fileModelDto.Upload.Id, Chunk = buffer });
-            } catch (ApiException ex)
-            {
-                await errorHandlerFactory.MessageError.HandleAsync(ex.Message);
+                logger.LogInformation("Успешно загружено");
+
+                if (fileModelDto.Upload.IsCompleted)
+                {
+                    return;
+                }
+
+                buffer = new byte[Math.Min(fileModelDto.Upload.ChunkSize, fileModelDto.Size - fileModelDto.Upload.SendedSize)];
             }
 
-            if (fileModelDto.Upload.IsCompleted)
+            await errorHandlerFactory.MessageError.HandleAsync("Файл был полностью прочитан, но загрузка не удалась!");
+
+
+        } catch (ApiException ex)
+        {
+
+            if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
             {
-                break;
+                var errors = ex.Content.ParseErrors().Values;
+
+                await errorHandlerFactory.MessageError.HandleAsync(errors.First().First());
             }
 
-            buffer = new byte[Math.Min(fileModelDto.Upload.ChunkSize, fileModelDto.Size - fileModelDto.Upload.SendedSize)];
+            if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                await errorHandlerFactory.MessageError.HandleAsync("Увы, но время на загрузку кончилось! Попробуйте еще раз позже");
+            }
+
+            return;
         }
-
-
     }
 
     private long GetFilesSize()
     {
-        return files.Sum(file => file.Size);
+        return files.Values.Sum(file => file.Size);
+    }
+
+    private double GetMbFilesSize()
+    {
+        return files.Values.Sum(file => file.SizeMb);
     }
 
     private async Task OnCodeInput(ChangeEventArgs e, int id)

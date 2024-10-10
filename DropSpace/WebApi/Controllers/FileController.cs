@@ -13,7 +13,8 @@ namespace DropSpace.WebApi.Controllers
     [ApiController]
     [Authorize]
     public class FileController(
-        IFileService fileService) : ControllerBase
+        IFileService fileService,
+        ILogger<FileController> logger) : ControllerBase
     {
         [HttpDelete]
         [SessionMemberFilter(nameof(deleteFileModel), "SessionId")]
@@ -64,7 +65,10 @@ namespace DropSpace.WebApi.Controllers
 
             try
             {
-                return Ok(await fileService.CreateUpload(initiateUploadModel));
+                logger.LogInformation("Попытка создания новой загрузки");
+                var result = await fileService.CreateUpload(initiateUploadModel);
+                logger.LogInformation("Создана новая загрузка");
+                return Ok(result);
             }
             catch (Exception ex)
             {
@@ -82,7 +86,10 @@ namespace DropSpace.WebApi.Controllers
 
             try
             {
-                return Ok(await fileService.UploadNewChunk(uploadChunk));
+                logger.LogInformation("Новый чанк загрузки {upload} поступил на контроллер", uploadChunk.UploadId);
+                var result = await fileService.UploadNewChunk(uploadChunk);
+                logger.LogInformation("Чанк загрузки {upload} успешно загружен!", uploadChunk.UploadId);
+                return Ok(result);
             }
             catch (NullReferenceException ex)
             {

@@ -179,11 +179,11 @@ body {
     }
 }
 
-.uploaded-file:hover, .pending-upload:hover {
+.uploaded-file:hover, .pending-file:hover {
     background-color: rgba(0, 0, 0, 0.8);
     border-width: 0 !important;
 }
 
-.uploaded-file, .pending-upload {
+.uploaded-file, .pending-file {
     transition: border-width linear 0.1s
 }

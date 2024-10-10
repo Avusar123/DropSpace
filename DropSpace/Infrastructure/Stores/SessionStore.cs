@@ -38,6 +38,7 @@ namespace DropSpace.Infrastructure.Stores
                 .Where(session =>
                     session
                         .Members
+                        .AsEnumerable()
                         .Any(member => member.UserId == userId)
                             && session.Created + session.Duration > DateTime.Now)
                 .ToListAsync();

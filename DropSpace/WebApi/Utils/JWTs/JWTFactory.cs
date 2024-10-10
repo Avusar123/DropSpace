@@ -21,7 +21,7 @@ namespace DropSpace.WebApi.Utils.JWTs
 
             var handler = new JwtSecurityTokenHandler();
 
-            var key = rSAKeyProvider.GetKey();
+            var key = rSAKeyProvider.GetOrCreateKey();
 
             var creds = new SigningCredentials(key, SecurityAlgorithms.RsaSha256);
 

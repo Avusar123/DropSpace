@@ -27,12 +27,15 @@ builder.Services.AddBlazorBootstrap();
 builder.Services.AddRefitClient<IAuthService>()
     .WithConfiguration(builder.Configuration)
     .AddHttpMessageHandler<CookieHttpHandler>();
+//.RemoveAllLoggers();
 builder.Services.AddRefitClient<ISessionService>()
     .WithConfiguration(builder.Configuration)
     .AddHttpMessageHandler<TokenHttpHandler>();
+//.RemoveAllLoggers();
 builder.Services.AddRefitClient<IFileService>()
     .WithConfiguration(builder.Configuration)
     .AddHttpMessageHandler<TokenHttpHandler>();
+    //.RemoveAllLoggers();
 var app = builder.Build();
 
 await app.RunAsync();

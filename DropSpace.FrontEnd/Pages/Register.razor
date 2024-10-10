@@ -70,7 +70,7 @@
         {
             await authService.Register(registerModel);
 
-            var url = "/login" + returnUrl != null ? $"?returnUrl={returnUrl}" : "";
+            var url = "/login" + (returnUrl != null ? $"?returnUrl={returnUrl}" : "");
 
             navigationManager.NavigateTo(url, true);
         }
