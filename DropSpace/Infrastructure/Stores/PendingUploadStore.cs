@@ -11,7 +11,7 @@ namespace DropSpace.Infrastructure.Stores
             if (model.Id == Guid.Empty)
                 model.Id = Guid.NewGuid();
 
-            model.LastChunkUploaded = DateTime.Now;
+            model.LastChunkUploaded = DateTime.UtcNow;
 
             applicationContext.PendingUploads.Add(model);
 

@@ -38,9 +38,8 @@ namespace DropSpace.Infrastructure.Stores
                 .Where(session =>
                     session
                         .Members
-                        .AsEnumerable()
                         .Any(member => member.UserId == userId)
-                            && session.Created + session.Duration > DateTime.Now)
+                            && session.Created + session.Duration > DateTime.UtcNow)
                 .ToListAsync();
         }
 
@@ -51,7 +50,7 @@ namespace DropSpace.Infrastructure.Stores
                 .Include(session => session.Files)
                     .ThenInclude(file => file.PendingUpload)
                 .Include(session => session.Members)
-                .Where(session => session.Created + session.Duration > DateTime.Now || includeExpired)
+                .Where(session => session.Created + session.Duration > DateTime.UtcNow || includeExpired)
                 .FirstOrDefaultAsync(s => s.Id == id) ?? throw new NullReferenceException("Сессия не найдена!");
         }
 

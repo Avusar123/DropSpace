@@ -11,10 +11,9 @@ namespace DropSpace.Logic.Jobs
     {
         public async Task Execute(IJobExecutionContext context)
         {
-            var currentTime = DateTime.Now;
+            var currentTime = DateTime.UtcNow;
 
             var sessions = applicationContext.Sessions
-                .AsEnumerable()
                 .Where(session =>
                         session.Created + session.Duration < currentTime);
 

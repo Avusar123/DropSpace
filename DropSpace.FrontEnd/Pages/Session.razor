@@ -230,7 +230,7 @@
 
         remainingTimer = new Timer(async (state) =>
         {
-            remainingTime = session.Expired - DateTime.Now;
+            remainingTime = session.Expired - DateTime.UtcNow;
             StateHasChanged();
             if (remainingTime.TotalSeconds <= 0)
             {

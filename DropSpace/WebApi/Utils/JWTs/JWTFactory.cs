@@ -17,7 +17,7 @@ namespace DropSpace.WebApi.Utils.JWTs
     {
         public Task<string> CreateTokenFromClaims(List<Claim> claims, DateTime? expires = null)
         {
-            expires ??= DateTime.Now.AddMinutes(5);
+            expires ??= DateTime.UtcNow.AddMinutes(5);
 
             var handler = new JwtSecurityTokenHandler();
 
@@ -37,7 +37,7 @@ namespace DropSpace.WebApi.Utils.JWTs
         {
             string roleName = configuration.GetValue<string>("OneTimeRoleName")!;
 
-            DateTime oneTimeExpires = DateTime.Now.AddSeconds(configuration.GetValue<int>("OneTimeSecsDuration"));
+            DateTime oneTimeExpires = DateTime.UtcNow.AddSeconds(configuration.GetValue<int>("OneTimeSecsDuration"));
 
             List<Claim> claims = [
                     new(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
@@ -48,7 +48,7 @@ namespace DropSpace.WebApi.Utils.JWTs
                 .Concat(await GenerateRoleAdditionalClaims(roleName))
                 .ToList();
 
-            var accessToken = await CreateTokenFromClaims(claims, DateTime.Now.AddMinutes(5));
+            var accessToken = await CreateTokenFromClaims(claims, DateTime.UtcNow.AddMinutes(5));
 
             claims.Add(new("type", "refresh"));
 
@@ -63,7 +63,7 @@ namespace DropSpace.WebApi.Utils.JWTs
 
         public async Task<TokensResult> CreateTokenPair(IdentityUser identityUser, string roleName)
         {
-            DateTime permanentUserExpires = DateTime.Now.AddSeconds(configuration.GetValue<int>("PemanentUserSecsDuration"));
+            DateTime permanentUserExpires = DateTime.UtcNow.AddSeconds(configuration.GetValue<int>("PemanentUserSecsDuration"));
 
             var identity = (await claimsPrincipalFactory.CreateAsync(identityUser)).Identities.First();
 
@@ -71,7 +71,7 @@ namespace DropSpace.WebApi.Utils.JWTs
 
             var claims = identity.Claims.ToList();
 
-            var accessToken = await CreateTokenFromClaims(claims, DateTime.Now.AddMinutes(5));
+            var accessToken = await CreateTokenFromClaims(claims, DateTime.UtcNow.AddMinutes(5));
 
             claims.Add(new("type", "refresh"));
 

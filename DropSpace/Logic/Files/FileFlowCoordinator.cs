@@ -88,7 +88,7 @@ namespace DropSpace.Logic.Files
 
             upload.SendedSize += uploadChunk.Chunk.LongLength;
 
-            upload.LastChunkUploaded = DateTime.Now;
+            upload.LastChunkUploaded = DateTime.UtcNow;
 
             if (upload.SendedSize >= upload.File.ByteSize)
             {

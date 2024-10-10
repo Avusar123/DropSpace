@@ -15,15 +15,13 @@ namespace DropSpace.Logic.Jobs
         public async Task Execute(IJobExecutionContext context)
         {
             var uploadTimeout = TimeSpan.FromSeconds(configuration.GetValue<int>("UploadTimeOutSecs"));
-
-            var expiredTime = DateTime.Now.Add(uploadTimeout);
             
             var uploads = applicationContext.PendingUploads
                 .Include(upload => upload.File)
                     .ThenInclude(file => file.Session)
                     .ThenInclude(session => session.Members)
                 .Where(upload =>
-                        upload.LastChunkUploaded >= expiredTime && !upload.IsCompleted);
+                        DateTime.UtcNow - upload.LastChunkUploaded >= uploadTimeout && !upload.IsCompleted);
 
             foreach (var upload in uploads)
             {

@@ -32,7 +32,7 @@ namespace DropSpace.Logic.Services
 
             var session = new Session()
             {
-                Created = DateTime.Now,
+                Created = DateTime.UtcNow,
                 Duration = TimeSpan.FromSeconds(userPlan.SessionDuration),
                 MaxSize = userPlan.MaxSize,
                 Name = sessionName,

@@ -26,7 +26,7 @@ namespace DropSpace.WebApi.Controllers
             {
                 var session = await sessionService.GetAsync(id);
 
-                if (session.Created + session.Duration < DateTime.Now)
+                if (session.Created + session.Duration < DateTime.UtcNow)
                 {
                     return NotFound();
                 }
