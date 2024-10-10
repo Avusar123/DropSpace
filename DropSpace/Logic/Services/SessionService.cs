@@ -140,12 +140,7 @@ namespace DropSpace.Logic.Services
                             .Files
                             .Select(file =>
                             {
-                                if (file.PendingUpload != null && file.PendingUpload.IsCompleted)
-                                {
-                                    return file.ByteSize;
-                                }
-
-                                return file.PendingUpload?.SendedSize ?? 0;
+                                return file.ByteSize;
                             })
                             .Sum();
 

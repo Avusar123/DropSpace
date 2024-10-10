@@ -1,5 +1,6 @@
 ﻿using DropSpace.Infrastructure;
 using DropSpace.Logic.Events.Interfaces;
+using DropSpace.Logic.Files.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Quartz;
 
@@ -8,23 +9,36 @@ namespace DropSpace.Logic.Jobs
     public class DeleteTimeoutUploadsJob(
     ApplicationContext applicationContext,
     IEventTransmitter eventTransmitter,
+    IFileVault fileVault,
     IConfiguration configuration) : IJob
     {
         public async Task Execute(IJobExecutionContext context)
         {
+            var uploadTimeout = TimeSpan.FromSeconds(configuration.GetValue<int>("UploadTimeOutSecs"));
+
+            var expiredTime = DateTime.Now.Add(uploadTimeout);
+            
             var uploads = applicationContext.PendingUploads
                 .Include(upload => upload.File)
                     .ThenInclude(file => file.Session)
                     .ThenInclude(session => session.Members)
                 .Where(upload =>
-                        DateTime.Now - upload.LastChunkUploaded >=
-                            TimeSpan.FromSeconds(configuration.GetValue<int>("UploadTimeOutSecs")));
+                        upload.LastChunkUploaded >= expiredTime && !upload.IsCompleted);
 
             foreach (var upload in uploads)
             {
-                applicationContext.PendingUploads.Remove(upload);
+                using (var transaction = await applicationContext.Database.BeginTransactionAsync())
+                {
+                    applicationContext.PendingUploads.Remove(upload);
 
-                await applicationContext.SaveChangesAsync();
+                    applicationContext.Files.Remove(upload.File);
+
+                    await fileVault.DeleteAsync(upload.File.Id.ToString());
+
+                    await applicationContext.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
+                }
 
                 //await eventTransmitter.FireEvent(new NewCh()
                 //{

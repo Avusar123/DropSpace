@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace DropSpace.Logic.Events.Handlers
 {
-    public class NewChunkUploadedEventHandler(
+    public class FileUpdatedEventHandler(
         IHubContext<SessionsHub> hubContext,
         IConnectionIdStore connectionIdStore
         ) : IEventHandler<FileUpdatedEvent>

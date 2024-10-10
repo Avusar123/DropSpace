@@ -7,6 +7,8 @@ namespace DropSpace.Logic.Extensions
     {
         public static FileModelDto ToDto(this FileModel file)
         {
+            var pendingUpload = file.PendingUpload;
+
             return new FileModelDto(
                 file.Id,
                 file.ByteSize,

@@ -1,5 +1,5 @@
-﻿using DropSpace.Domain;
-using DropSpace.Domain.Models;
+﻿using DropSpace.Contracts.Models;
+using DropSpace.Domain;
 using DropSpace.Infrastructure.Stores.Interfaces;
 using DropSpace.Logic.Extensions;
 using DropSpace.Logic.Files.Interfaces;
@@ -66,27 +66,27 @@ namespace DropSpace.Logic.Files
         {
             var upload = await pendingUploadStore.GetById(uploadChunk.UploadId);
 
-            if (!await sessionService.CanSave(upload.File.SessionId, (int)uploadChunk.File.Length) ||
-                !await fileVault.CanFit((int)uploadChunk.File.Length))
+            if (!await sessionService.CanSave(upload.File.SessionId, uploadChunk.Chunk.LongLength) ||
+                !await fileVault.CanFit(uploadChunk.Chunk.LongLength))
             {
-                throw new NotEnoughSpaceException((int)uploadChunk.File.Length);
+                throw new NotEnoughSpaceException(uploadChunk.Chunk.LongLength);
             }
 
-            if (upload.ChunkSize < uploadChunk.File.Length ||
-                upload.SendedSize + uploadChunk.File.Length > upload.File.ByteSize)
+            if (upload.ChunkSize < uploadChunk.Chunk.LongLength ||
+                upload.SendedSize + uploadChunk.Chunk.LongLength > upload.File.ByteSize)
             {
                 throw new ArgumentException("Объем загрузки превышен!");
             }
 
             var stream = new MemoryStream();
 
-            await uploadChunk.File.CopyToAsync(stream);
+            await stream.WriteAsync(uploadChunk.Chunk);
 
             stream.Position = 0;
 
             await fileVault.SaveData(upload.FileId.ToString(), stream);
 
-            upload.SendedSize += uploadChunk.File.Length;
+            upload.SendedSize += uploadChunk.Chunk.LongLength;
 
             upload.LastChunkUploaded = DateTime.Now;
 

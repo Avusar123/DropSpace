@@ -6,13 +6,26 @@ namespace DropSpace.WebApi.Utils.RSAKeyProviders
 {
     public class RSAFromFileKeyProvider(IConfiguration configuration) : IRSAKeyProvider
     {
-        public RsaSecurityKey GetKey()
+        public RsaSecurityKey GetOrCreateKey()
         {
+            var pathToRsa = Path.Combine(configuration.GetValue<string>("KeysFolder")!,
+                configuration.GetValue<string>("RSAFileName")!);
+
             var rsa = RSA.Create();
-            rsa.ImportRSAPrivateKey(
-                File.ReadAllBytes(configuration.GetValue<string>("RSALocation")!),
-                out _
-            );
+            
+            if (File.Exists(pathToRsa))
+            {
+                rsa.ImportRSAPrivateKey(
+                    File.ReadAllBytes(pathToRsa),
+                    out _
+                );
+            } else
+            {
+                var key = rsa.ExportRSAPrivateKey();
+
+                File.WriteAllBytes(pathToRsa, key);
+            }
+            
 
             return new RsaSecurityKey(rsa);
         }

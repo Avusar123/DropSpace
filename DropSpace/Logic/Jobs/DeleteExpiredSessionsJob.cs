@@ -7,14 +7,16 @@ namespace DropSpace.Logic.Jobs
 {
     public class DeleteExpiredSessionsJob(
     ApplicationContext applicationContext,
-    ISessionService sessionService,
-    IEventTransmitter eventTransmitter) : IJob
+    ISessionService sessionService) : IJob
     {
         public async Task Execute(IJobExecutionContext context)
         {
+            var currentTime = DateTime.Now;
+
             var sessions = applicationContext.Sessions
+                .AsEnumerable()
                 .Where(session =>
-                        session.Created + session.Duration < DateTime.Now);
+                        session.Created + session.Duration < currentTime);
 
             foreach (var session in sessions)
             {

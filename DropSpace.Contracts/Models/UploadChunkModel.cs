@@ -1,12 +1,12 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System.ComponentModel.DataAnnotations;
 
-namespace DropSpace.Domain.Models
+namespace DropSpace.Contracts.Models
 {
     public class UploadChunkModel
     {
         [Required]
-        public IFormFile File { get; set; }
+        public byte[] Chunk { get; set; } = [];
 
         [Required]
         public Guid UploadId { get; set; }

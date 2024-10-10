@@ -3,15 +3,21 @@
 @using DropSpace.Contracts.Dtos
 @using DropSpace.FrontEnd.Extensions
 @using DropSpace.FrontEnd.Utils
+@using DropSpace.FrontEnd.Utils.ErrorHandlers
 @using DropSpace.FrontEnd.Utils.Interfaces
 @using Microsoft.AspNetCore.SignalR.Client
+@using Contracts.Models
 @using Refit
+@using System.Collections.Concurrent
 @implements IDisposable
 @inject NavigationManager navigation
 @inject IHubConnectionProvider hubConnectionProvider
 @inject EventTransmitter eventTransmitter 
 @inject ISessionService sessionService
-@inject IJSRuntime JSRuntime;
+@inject IFileService fileService
+@inject ErrorHandlerFactory errorHandlerFactory
+@inject IJSRuntime JSRuntime
+@inject ILogger<Session> logger
 @if (session == null)
 {
     <p class="p-3">Загрузка..</p>
@@ -33,7 +39,7 @@
             <ul class="gap-4 m-0" style="display: flex;">
                 <li class="nav-item text-white flex-column align-items-center" style="cursor: default; display: flex;">
                     <div>
-                        <span id="session-size">0</span> / @session.MaxSizeMb
+                        <span id="session-size">@Math.Round(GetMbFilesSize(), 2)</span> / @session.MaxSizeMb
                         <span class="subtitle" style="letter-spacing: 0px; font-size: 0.7em; margin: 0 0 0 0.5em">MB</span>
                     </div>
                     <div class="subtitle nav-subtitle" style="font-size: 0.7em; letter-spacing: 1px">Максимальный объем</div>
@@ -52,13 +58,45 @@
 
     <div class="d-flex flex-column flex-grow-1">
         <div class="p-4 d-flex gap-3 flex-wrap container-fluid file-container flex-grow-1 align-items-start">
-            <div class="add-file-button file btn-outline-dark btn d-flex flex-column align-items-center justify-content-center p-2" style="">
+            <div @onclick="AddFile" class="add-file-button file btn-outline-dark btn d-flex flex-column align-items-center justify-content-center p-2" style="">
                 <div class="d-flex w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
                 </div>
                 <div class="d-flex flex-column w-100 align-items-center justify-content-center" style="flex: 0 0 33%"><i class="fa-regular fa-plus" style="font-size: 6em"></i></div>
                 <div class="d-flex w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
                 </div>
             </div>
+            @foreach (var file in files.Values)
+            {
+                @if (file.Upload.IsCompleted)
+                {
+                    <div class="file p-2 uploaded-file btn-dark btn d-flex flex-column align-items-center justify-content-center" style="border-radius: 15px; width: 150px; height: 200px;">
+                        <div class="d-flex w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
+                            <p><span class="sended-size">@file.SizeMb</span> <span class="subtitle" style="font-size: 0.7em; letter-spacing: 1px;">MB</span></p>
+                        </div>
+                        <div class="d-flex w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
+                            <i class="fa-regular fa-file" style="font-size: 6em"></i>
+                        </div>
+                        <div class="d-flex w-100 align-items-center text-truncate justify-content-center" style="flex: 0 0 33%">
+                            @file.FileName
+                        </div>
+                    </div>
+                } else
+                {
+                    <div class="file p-2 pending-file btn-dark btn d-flex flex-column align-items-center justify-content-center" style="border-radius: 15px; width: 150px; height: 200px;">
+                        <div class="d-flex flex-column w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
+                            <div class="progress" style="flex: 0 0 15%; width: 75%">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: @((int)((file.Upload.SendedSizeMb / file.SizeMb) * 100))%"></div>
+                            </div>
+                            <p><span class="sended-size">@file.Upload.SendedSizeMb</span> / @file.SizeMb <span class="subtitle" style="font-size: 0.7em; flex: 0 0 85%; letter-spacing: 1px;">MB</span></p>
+                        </div>
+                        <div class="spinner-border" role="status" aria-hidden="true"></div>
+                        <div class="d-flex w-100 align-items-center text-truncate justify-content-center" style="flex: 0 0 33%">
+                            @file.FileName
+                        </div>
+                    </div>
+                }
+
+        }
         </div>
         <div class="collapse" id="filesActionsNavbar">
             <div class="bg-dark p-4">
@@ -101,15 +139,19 @@
                 </div>
             </div>
         </div>
-        <input multiple="multiple" type="file" id="fileInput" style="display: none;" />
     </div>
+    <InputFile @ref="fileInput" Mult OnChange="FileUploaded"/>
 }
 
 @code {
     [Parameter]
     public string sessionId { get; set; }
 
+    private InputFile fileInput;
+
     private Timer remainingTimer;
+
+    private ConcurrentDictionary<Guid, FileModelDto> files = [];
 
     private ElementReference[] codeInputs = new ElementReference[5];
 
@@ -127,12 +169,17 @@
 
     public void Dispose()
     {
+        files = [];
+
         if (remainingTimer != null)
             remainingTimer.Dispose();
 
-        hubConnection.Remove("UserLeft");
+        if (hubConnection != null)
+        {
+            hubConnection.Remove("UserLeft");
 
-        hubConnection.Remove("UserJoined");
+            hubConnection.Remove("UserJoined");
+        }
 
         session = null;
     }
@@ -142,41 +189,18 @@
         if (!Guid.TryParse(sessionId, out var id))
             navigation.NavigateTo("/");
 
-        hubConnection = await hubConnectionProvider.GetOrCreateConnection("SessionNotification");
-
         Dispose();
-
-        hubConnection.On("UserLeft", async (int membersCount) =>
-        {
-            this.membersCount = membersCount;
-
-            StateHasChanged();
-
-            await eventTransmitter.InvokeAsync<ToastMessage>("ShowToast", new()
-            {
-                AutoHide = true,
-                Type = ToastType.Primary,
-                Message = "Пользователь вышел из сессии"
-            });    
-        });
-
-        hubConnection.On("UserJoined", async (int membersCount) =>
-        {
-            this.membersCount = membersCount;
-
-            await eventTransmitter.InvokeAsync<ToastMessage>("ShowToast", new()
-            {
-                AutoHide = true,
-                Type = ToastType.Primary,
-                Message = "К сессии присоединился новый пользователь"
-            });
-
-            StateHasChanged();
-        });
 
         try
         {
             session = await sessionService.Get(id);
+
+            var filesList = await fileService.GetAll(id);
+
+            foreach (var file in filesList)
+            {
+                files[file.Id] = file; 
+            }
 
             await eventTransmitter.InvokeAsync("NewSession", session);
 
@@ -186,28 +210,17 @@
         }
         catch (ApiException ex)
         {
-            string message = "";
 
             if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
             {
                 var errors = ex.Content.ParseErrors().Values;
 
-                message = errors.First().First();
+                await errorHandlerFactory.MessageError.HandleAsync(errors.First().First());
             }
 
             if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                message = "Сессия исчерпана или не существует!";
-            }
-
-            if (!string.IsNullOrEmpty(message))
-            {
-                await eventTransmitter.InvokeAsync("ShowToast", new ToastMessage()
-                {
-                    Type = ToastType.Danger,
-                    AutoHide = true,
-                    Message = message
-                });
+                await errorHandlerFactory.MessageError.HandleAsync("Сессия исчерпана или не существует!");
             }
 
             await OnSessionRemoved();
@@ -226,6 +239,123 @@
                 await OnSessionRemoved();
             }
         }, null, 0, 1000);
+
+
+        if (hubConnection == null)
+            hubConnection = await hubConnectionProvider.GetOrCreateConnection("SessionNotification");
+
+        hubConnection.On("UserLeft", async (int membersCount) =>
+        {
+            this.membersCount = membersCount;
+
+            StateHasChanged();
+
+            await eventTransmitter.InvokeAsync<ToastMessage>("ShowToast", new()
+                {
+                    AutoHide = true,
+                    Type = ToastType.Primary,
+                    Message = "Пользователь вышел из сессии"
+                });
+        });
+
+        hubConnection.On("UserJoined", async (int membersCount) =>
+        {
+            this.membersCount = membersCount;
+
+            await eventTransmitter.InvokeAsync<ToastMessage>("ShowToast", new()
+                {
+                    AutoHide = true,
+                    Type = ToastType.Primary,
+                    Message = "К сессии присоединился новый пользователь"
+                });
+
+            StateHasChanged();
+        });
+
+        hubConnection.On("FileUpdated", (FileModelDto file) =>
+        {
+            files.AddOrUpdate(file.Id, file, (_,_) =>
+            {
+                return file;
+            });
+
+            StateHasChanged();
+        });
+    }
+
+    private async Task FileUploaded(InputFileChangeEventArgs args)
+    {
+        var file = args.File;
+
+        var size = GetFilesSize();
+
+        if (size + file.Size > session!.MaxSize)
+        {
+            await errorHandlerFactory.MessageError.HandleAsync("Файл слишком велик!");
+
+            return;
+        }
+
+        using var fileStream = file.OpenReadStream(file.Size);
+
+        try 
+        {
+            var fileModelDto = await fileService.CreateUpload(
+            new InitiateUploadModel() 
+            { 
+                Name = file.Name, 
+                SessionId = session.Id, 
+                Size = file.Size 
+            });
+
+            byte[] buffer = new byte[Math.Min(fileModelDto.Upload.ChunkSize, fileModelDto.Size)];
+
+            while (await fileStream.ReadAsync(buffer) > 0)
+            {
+                logger.LogInformation("В буфер было загружено {bytes}", buffer.Length);
+
+                logger.LogInformation("Начата загрузка на сервер");
+                fileModelDto = await fileService.UploadChunk(new UploadChunkModel() { UploadId = fileModelDto.Upload.Id, Chunk = buffer });
+                logger.LogInformation("Успешно загружено");
+
+                if (fileModelDto.Upload.IsCompleted)
+                {
+                    return;
+                }
+
+                buffer = new byte[Math.Min(fileModelDto.Upload.ChunkSize, fileModelDto.Size - fileModelDto.Upload.SendedSize)];
+            }
+
+            await errorHandlerFactory.MessageError.HandleAsync("Файл был полностью прочитан, но загрузка не удалась!");
+
+
+        } catch (ApiException ex)
+        {
+
+            if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                var errors = ex.Content.ParseErrors().Values;
+
+                await errorHandlerFactory.MessageError.HandleAsync(errors.First().First());
+            }
+
+            if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                await errorHandlerFactory.MessageError.HandleAsync("Увы, но время на загрузку кончилось! Попробуйте еще раз позже");
+            }
+
+            return;
+        }
+    }
+
+    private long GetFilesSize()
+    {
+        return files.Values.Sum(file => file.Size);
+    }
+
+    private double GetMbFilesSize()
+    {
+        return files.Values.Sum(file => file.SizeMb);
     }
 
     private async Task OnCodeInput(ChangeEventArgs e, int id)
@@ -242,25 +372,19 @@
             return;
         }
 
-        string message = "Сообщение успешно отправлено!";
-
-        ToastType toastType = ToastType.Success;
-
-
         try
         {
             await hubConnection.InvokeAsync("SendInviteByCode", code, session.Id);
         } catch (Exception ex)
         {
-            message = ex.Message.Split(":").Last();
-            toastType = ToastType.Danger;
+            await errorHandlerFactory.HubError.HandleAsync(ex.Message);
         }
 
         await eventTransmitter.InvokeAsync("ShowToast", new ToastMessage()
         {
-            Type = toastType,
+            Type = ToastType.Success,
             AutoHide = true,
-            Message = message
+            Message = "Сообщение успешно отправлено!"
         });
     }
 
@@ -293,6 +417,10 @@
 
     private async Task Leave()
     {
+        if (session == null)
+        {
+            return;
+        }
         await sessionService.Leave(session.Id);
 
         await OnSessionRemoved();
@@ -301,8 +429,14 @@
     private async Task OnSessionRemoved()
     {
         if (session != null)
-        await eventTransmitter.InvokeAsync<Guid>("SessionRemoved", session.Id);
+            await eventTransmitter.InvokeAsync<Guid>("SessionRemoved", session.Id);
 
         navigation.NavigateTo("/");
+    }
+
+    private async Task AddFile(MouseEventArgs e)
+    {
+        if (fileInput.Element != null)
+        await JSRuntime.InvokeVoidAsync("click", fileInput.Element);
     }
 }

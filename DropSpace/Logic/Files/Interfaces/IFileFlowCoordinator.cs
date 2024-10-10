@@ -1,5 +1,5 @@
-﻿using DropSpace.Domain;
-using DropSpace.Domain.Models;
+﻿using DropSpace.Contracts.Models;
+using DropSpace.Domain;
 
 namespace DropSpace.Logic.Files.Interfaces
 {

@@ -1,5 +1,5 @@
 ﻿using DropSpace.Contracts.Dtos;
-using DropSpace.Domain.Models;
+using DropSpace.Contracts.Models;
 using DropSpace.Logic.Extensions;
 using DropSpace.Logic.Services.Interfaces;
 using DropSpace.WebApi.Controllers.Filters;
@@ -14,7 +14,7 @@ namespace DropSpace.WebApi.Controllers
     [Authorize]
     public class FileController(
         IFileService fileService,
-        IAuthorizationService authorizationService) : ControllerBase
+        ILogger<FileController> logger) : ControllerBase
     {
         [HttpDelete]
         [SessionMemberFilter(nameof(deleteFileModel), "SessionId")]
@@ -46,34 +46,29 @@ namespace DropSpace.WebApi.Controllers
             {
                 return await fileService.GetAllFiles(sessionId);
             }
-            catch (Exception er)
+            catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, er.Message);
+                ModelState.AddModelError(string.Empty, ex.Message);
 
                 return BadRequest(ModelState);
             }
         }
 
-        [SessionMemberFilter(nameof(initiateUploadModel), "SessionId")]
         [HttpPost]
-        public async Task<ActionResult> CreateUpload(InitiateUploadModel initiateUploadModel)
+        [SessionMemberFilter(nameof(initiateUploadModel), "SessionId")]
+        public async Task<ActionResult<FileModelDto>> CreateUpload(InitiateUploadModel initiateUploadModel)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var authresult = await authorizationService
-                .AuthorizeAsync(User, initiateUploadModel.SessionId, new MemberRequirement());
-
-            if (!authresult.Succeeded)
-            {
-                return Forbid();
-            }
-
             try
             {
-                return Ok(await fileService.CreateUpload(initiateUploadModel));
+                logger.LogInformation("Попытка создания новой загрузки");
+                var result = await fileService.CreateUpload(initiateUploadModel);
+                logger.LogInformation("Создана новая загрузка");
+                return Ok(result);
             }
             catch (Exception ex)
             {
@@ -82,8 +77,7 @@ namespace DropSpace.WebApi.Controllers
         }
 
         [HttpPut]
-        [SessionMemberFilter(nameof(uploadChunk), "SessionId")]
-        public async Task<ActionResult> UploadChunk(UploadChunkModel uploadChunk)
+        public async Task<ActionResult<FileModelDto>> UploadChunk(UploadChunkModel uploadChunk)
         {
             if (!ModelState.IsValid)
             {
@@ -92,7 +86,10 @@ namespace DropSpace.WebApi.Controllers
 
             try
             {
-                return Ok(await fileService.UploadNewChunk(uploadChunk));
+                logger.LogInformation("Новый чанк загрузки {upload} поступил на контроллер", uploadChunk.UploadId);
+                var result = await fileService.UploadNewChunk(uploadChunk);
+                logger.LogInformation("Чанк загрузки {upload} успешно загружен!", uploadChunk.UploadId);
+                return Ok(result);
             }
             catch (NullReferenceException ex)
             {
@@ -105,36 +102,36 @@ namespace DropSpace.WebApi.Controllers
 
         }
 
-        [HttpGet("Download")]
-        [SessionMemberFilter(nameof(downloadChunkModel), "SessionId")]
-        public async Task<ActionResult> DownloadFileChunk(DownloadChunkModel downloadChunkModel)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
+        //[HttpGet("Download")]
+        //[SessionMemberFilter(nameof(downloadChunkModel), "SessionId")]
+        //public async Task<ActionResult> DownloadFileChunk(DownloadChunkModel downloadChunkModel)
+        //{
+        //    try
+        //    {
+        //        if (!ModelState.IsValid)
+        //        {
+        //            return BadRequest(ModelState);
+        //        }
 
-                var data = await fileService.GetChunkData(downloadChunkModel);
+        //        var data = await fileService.GetChunkData(downloadChunkModel);
 
-                return File(data.Content, data.ContentType);
-            }
-            catch (NullReferenceException)
-            {
-                return NotFound(downloadChunkModel.FileId);
-            }
-            catch (Exception er)
-            {
-                ModelState.AddModelError(string.Empty, er.Message);
+        //        return File(data.Content, data.ContentType);
+        //    }
+        //    catch (NullReferenceException)
+        //    {
+        //        return NotFound(downloadChunkModel.FileId);
+        //    }
+        //    catch (Exception er)
+        //    {
+        //        ModelState.AddModelError(string.Empty, er.Message);
 
-                return BadRequest(ModelState);
-            }
+        //        return BadRequest(ModelState);
+        //    }
 
-        }
+        //}
 
         [HttpGet("{fileId}")]
-        public async Task<ActionResult> GetFileInfo(Guid fileId)
+        public async Task<ActionResult<FileModelDto>> GetFileInfo(Guid fileId)
         {
             try
             {
@@ -150,7 +147,6 @@ namespace DropSpace.WebApi.Controllers
             {
                 return BadRequest(ex.Message);
             }
-
         }
     }
 }

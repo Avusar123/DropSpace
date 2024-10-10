@@ -88,7 +88,7 @@ namespace DropSpace.Logic.Files
 
             var length = (int)fileStream.Length;
 
-            byte[] buffer = new byte[4096]; // Размер буфера (4 КБ)
+            byte[] buffer = new byte[4096];
 
             fileStream.Position = length;
 

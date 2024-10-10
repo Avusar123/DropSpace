@@ -4,6 +4,7 @@ namespace DropSpace.Infrastructure.Stores.Interfaces
 {
     public interface IFileStore
     {
+        ApplicationContext ApplicationContext { get; }
 
         Task<Guid> CreateAsync(FileModel fileModel);
 

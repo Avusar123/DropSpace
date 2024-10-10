@@ -1,7 +1,8 @@
 ﻿using DropSpace.Contracts.Dtos;
+using DropSpace.Contracts.Models;
 using DropSpace.Domain;
-using DropSpace.Domain.Models;
 using DropSpace.Infrastructure.Stores.Interfaces;
+using DropSpace.Logic.Events.Events;
 using DropSpace.Logic.Events.Interfaces;
 using DropSpace.Logic.Extensions;
 using DropSpace.Logic.Files.Interfaces;
@@ -14,28 +15,36 @@ namespace DropSpace.Logic.Services
         IFileStore fileStore,
         ISessionStore sessionStore,
         IEventTransmitter eventTransmitter,
-        IFileFlowCoordinator fileCoordinator) : IFileService
+        IFileFlowCoordinator fileCoordinator,
+        ILogger<FileService> logger) : IFileService
     {
         public async Task<FileModelDto> CreateUpload(InitiateUploadModel initiateNewUpload)
         {
-            var fileId = await fileStore.CreateAsync(new FileModel()
+            logger.LogInformation("Начата загрузка файла с именем {name}", initiateNewUpload.Name);
+
+            Guid fileId;
+
+            using(var transaction = await fileStore.ApplicationContext.Database.BeginTransactionAsync())
             {
-                FileName = initiateNewUpload.Name,
-                ByteSize = initiateNewUpload.Size,
-                SessionId = initiateNewUpload.SessionId
-            });
+                fileId = await fileStore.CreateAsync(new FileModel()
+                {
+                    FileName = initiateNewUpload.Name,
+                    ByteSize = initiateNewUpload.Size,
+                    SessionId = initiateNewUpload.SessionId
+                });
 
-            var pendingUpload = await fileCoordinator.InitiateNewUpload(initiateNewUpload, fileId);
+                await fileCoordinator.InitiateNewUpload(initiateNewUpload, fileId);
 
-            //await eventTransmitter.FireEvent(
-            //    new FileListChangedEvent()
-            //    {
-            //        UserIds = (await sessionStore
-            //                        .GetAsync(initiateNewUpload.SessionId))
-            //                        .GetMemberIds()
-            //    });
+                await transaction.CommitAsync();
+            }
 
             var file = await fileStore.GetById(fileId);
+
+            await eventTransmitter.FireEvent(
+                new FileUpdatedEvent(file.Session.GetMemberIds(), file.ToDto())
+            );
+
+            logger.LogInformation("Загрузка файла с именем {name} успешно сохранена в БД", initiateNewUpload.Name);
 
             return file.ToDto();
 
@@ -91,14 +100,15 @@ namespace DropSpace.Logic.Services
 
         public async Task<FileModelDto> UploadNewChunk(UploadChunkModel uploadChunkModel)
         {
+            logger.LogInformation("Начато сохранение нового чанка для загрузки {upload}", uploadChunkModel.UploadId);
+
             var pendingUpload = await fileCoordinator.SaveNewChunk(uploadChunkModel);
-            //await eventTransmitter.FireEvent(
-            //    new FileListChangedEvent()
-            //    {
-            //        UserIds = (await sessionStore
-            //                        .GetAsync(pendingUpload.SessionId))
-            //                        .GetMemberIds()
-            //    });
+
+            logger.LogInformation("Чанк успешно сохранен для загрузки {upload}", uploadChunkModel.UploadId);
+
+            await eventTransmitter.FireEvent(
+                new FileUpdatedEvent(pendingUpload.File.Session.GetMemberIds(), pendingUpload.File.ToDto())
+            );
 
             return pendingUpload.File.ToDto();
         }

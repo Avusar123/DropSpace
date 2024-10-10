@@ -1,6 +1,6 @@
 ﻿using DropSpace.Contracts.Dtos;
+using DropSpace.Contracts.Models;
 using DropSpace.Domain;
-using DropSpace.Domain.Models;
 
 namespace DropSpace.Logic.Services.Interfaces
 {

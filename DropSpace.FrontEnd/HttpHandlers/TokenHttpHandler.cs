@@ -7,7 +7,9 @@ using Refit;
 
 namespace DropSpace.FrontEnd.HttpHandlers
 {
-    public class TokenHttpHandler(AuthManager tokenProvider, NavigationManager navigationManager) : DelegatingHandler
+    public class TokenHttpHandler(
+        AuthManager tokenProvider, 
+        ErrorHandlerFactory errorHandlerFactory) : DelegatingHandler
     {
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -27,7 +29,7 @@ namespace DropSpace.FrontEnd.HttpHandlers
                     {
                         if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                         {
-                            ErrorHandler.NotAuthorized.Handle();
+                            await errorHandlerFactory.NotAuthorized.HandleAsync();
                             return new HttpResponseMessage(System.Net.HttpStatusCode.Unauthorized);
                         }
                     }

@@ -6,7 +6,7 @@ using System.Net;
 
 namespace DropSpace.FrontEnd.HttpHandlers
 {
-    public class CookieHttpHandler : DelegatingHandler
+    public class CookieHttpHandler(ErrorHandlerFactory errorHandlerFactory) : DelegatingHandler
     {
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -16,8 +16,7 @@ namespace DropSpace.FrontEnd.HttpHandlers
 
             if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
-                ErrorHandler.NotAuthorized.Handle();
-
+                await errorHandlerFactory.NotAuthorized.HandleAsync();
                 return new HttpResponseMessage(System.Net.HttpStatusCode.Unauthorized);
             }
 

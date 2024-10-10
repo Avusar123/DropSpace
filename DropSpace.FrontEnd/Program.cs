@@ -22,14 +22,20 @@ builder.Services.AddScoped<AuthManager>();
 builder.Services.AddScoped<TokenHttpHandler>();
 builder.Services.AddScoped<CookieHttpHandler>();
 builder.Services.AddScoped<IHubConnectionProvider, HubConnectionProvider>();
+builder.Services.AddScoped<ErrorHandlerFactory>();
 builder.Services.AddBlazorBootstrap();
 builder.Services.AddRefitClient<IAuthService>()
     .WithConfiguration(builder.Configuration)
     .AddHttpMessageHandler<CookieHttpHandler>();
+//.RemoveAllLoggers();
 builder.Services.AddRefitClient<ISessionService>()
     .WithConfiguration(builder.Configuration)
     .AddHttpMessageHandler<TokenHttpHandler>();
-ErrorHandler.Initialize(builder.Services.BuildServiceProvider());
+//.RemoveAllLoggers();
+builder.Services.AddRefitClient<IFileService>()
+    .WithConfiguration(builder.Configuration)
+    .AddHttpMessageHandler<TokenHttpHandler>();
+    //.RemoveAllLoggers();
 var app = builder.Build();
 
 await app.RunAsync();
