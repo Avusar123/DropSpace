@@ -66,7 +66,7 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddQuartz(q =>
 {
-    q.AddJob<DeleteExpiredSessionsJob>(opts =>
+    q.AddJob<DeleteExpiredEntitiesJob>(opts =>
     opts.WithIdentity("DeleteExpired", "Session")
         .RequestRecovery());
 
@@ -77,24 +77,6 @@ builder.Services.AddQuartz(q =>
         {
             shedule
             .WithIntervalInSeconds(60)
-            .WithMisfireHandlingInstructionNextWithRemainingCount()
-            .RepeatForever();
-        })
-        .StartNow();
-    });
-
-    q.AddJob<DeleteTimeoutUploadsJob>(opts =>
-    opts.WithIdentity("DeleteUpload", "Session")
-        .RequestRecovery());
-
-    q.AddTrigger(trigger =>
-    {
-        trigger.ForJob("DeleteUpload", "Session")
-        .WithSimpleSchedule(shedule =>
-        {
-            shedule
-            .WithIntervalInSeconds(15)
-            .WithMisfireHandlingInstructionNextWithRemainingCount()
             .RepeatForever();
         })
         .StartNow();

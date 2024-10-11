@@ -283,69 +283,69 @@
         });
     }
 
-    private async Task FileUploaded(InputFileChangeEventArgs args)
+    private void FileUploaded(InputFileChangeEventArgs args)
     {
-        var file = args.File;
-
-        var size = GetFilesSize();
-
-        if (size + file.Size > session!.MaxSize)
+        Task.Run(async () =>
         {
-            await errorHandlerFactory.MessageError.HandleAsync("Файл слишком велик!");
+            var file = args.File;
 
-            return;
-        }
+            var size = GetFilesSize();
 
-        using var fileStream = file.OpenReadStream(file.Size);
-
-        try 
-        {
-            var fileModelDto = await fileService.CreateUpload(
-            new InitiateUploadModel() 
-            { 
-                Name = file.Name, 
-                SessionId = session.Id, 
-                Size = file.Size 
-            });
-
-            byte[] buffer = new byte[Math.Min(fileModelDto.Upload.ChunkSize, fileModelDto.Size)];
-
-            while (await fileStream.ReadAsync(buffer) > 0)
+            if (size + file.Size > session!.MaxSize)
             {
-                logger.LogInformation("В буфер было загружено {bytes}", buffer.Length);
+                await errorHandlerFactory.MessageError.HandleAsync("Файл слишком велик!");
 
-                logger.LogInformation("Начата загрузка на сервер");
-                fileModelDto = await fileService.UploadChunk(new UploadChunkModel() { UploadId = fileModelDto.Upload.Id, Chunk = buffer });
-                logger.LogInformation("Успешно загружено");
+                return;
+            }
 
-                if (fileModelDto.Upload.IsCompleted)
+            using var fileStream = file.OpenReadStream(file.Size);
+
+            try
+            {
+                var fileModelDto = await fileService.CreateUpload(
+                    new InitiateUploadModel()
+                    {
+                        Name = file.Name,
+                        SessionId = session.Id,
+                        Size = file.Size
+                    });
+
+                byte[] buffer = new byte[Math.Min(fileModelDto.Upload.ChunkSize, fileModelDto.Size)];
+
+                while (await fileStream.ReadAsync(buffer) > 0)
                 {
-                    return;
+                    fileModelDto = await fileService.UploadChunk(new UploadChunkModel() { UploadId = fileModelDto.Upload.Id, Chunk = buffer });
+
+                    if (fileModelDto.Upload.IsCompleted)
+                    {
+                        return;
+                    }
+
+                    buffer = new byte[Math.Min(fileModelDto.Upload.ChunkSize, fileModelDto.Size - fileModelDto.Upload.SendedSize)];
                 }
 
-                buffer = new byte[Math.Min(fileModelDto.Upload.ChunkSize, fileModelDto.Size - fileModelDto.Upload.SendedSize)];
+                await errorHandlerFactory.MessageError.HandleAsync("Файл был полностью прочитан, но загрузка не удалась!");
+
+
             }
-
-            await errorHandlerFactory.MessageError.HandleAsync("Файл был полностью прочитан, но загрузка не удалась!");
-
-
-        } catch (ApiException ex)
-        {
-
-            if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            catch (ApiException ex)
             {
-                var errors = ex.Content.ParseErrors().Values;
 
-                await errorHandlerFactory.MessageError.HandleAsync(errors.First().First());
+                if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    var errors = ex.Content.ParseErrors().Values;
+
+                    await errorHandlerFactory.MessageError.HandleAsync(errors.First().First());
+                }
+
+                if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    await errorHandlerFactory.MessageError.HandleAsync("Увы, но время на загрузку кончилось! Попробуйте еще раз позже");
+                }
+
+                return;
             }
-
-            if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                await errorHandlerFactory.MessageError.HandleAsync("Увы, но время на загрузку кончилось! Попробуйте еще раз позже");
-            }
-
-            return;
-        }
+        });
     }
 
     private long GetFilesSize()

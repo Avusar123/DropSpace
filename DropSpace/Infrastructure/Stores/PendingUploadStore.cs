@@ -37,7 +37,7 @@ namespace DropSpace.Infrastructure.Stores
             return await applicationContext
                 .PendingUploads
                 .Include(upload => upload.File)
-                .ThenInclude(upload => upload.Session)
+                    .ThenInclude(upload => upload.Session)
                 .Where(upload => upload.Id == id && upload.IsCompleted == false)
                 .FirstOrDefaultAsync() ?? throw new NullReferenceException("Загрузка не найдена");
         }

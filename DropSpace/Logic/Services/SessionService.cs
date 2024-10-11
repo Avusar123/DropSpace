@@ -138,6 +138,7 @@ namespace DropSpace.Logic.Services
 
             var totalSize = session
                             .Files
+                            .Where(file => file.PendingUpload != null)
                             .Select(file =>
                             {
                                 return file.ByteSize;

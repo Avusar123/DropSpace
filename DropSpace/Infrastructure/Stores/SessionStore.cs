@@ -50,6 +50,7 @@ namespace DropSpace.Infrastructure.Stores
                 .Include(session => session.Files)
                     .ThenInclude(file => file.PendingUpload)
                 .Include(session => session.Members)
+                .AsSplitQuery()
                 .Where(session => session.Created + session.Duration > DateTime.UtcNow || includeExpired)
                 .FirstOrDefaultAsync(s => s.Id == id) ?? throw new NullReferenceException("Сессия не найдена!");
         }
