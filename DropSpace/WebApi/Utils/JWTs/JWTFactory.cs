@@ -63,7 +63,7 @@ namespace DropSpace.WebApi.Utils.JWTs
 
         public async Task<TokensResult> CreateTokenPair(IdentityUser identityUser, string roleName)
         {
-            DateTime permanentUserExpires = DateTime.UtcNow.AddSeconds(configuration.GetValue<int>("PemanentUserSecsDuration"));
+            DateTime permanentUserExpires = DateTime.UtcNow.AddSeconds(configuration.GetValue<int>("PermanentUserSecsDuration"));
 
             var identity = (await claimsPrincipalFactory.CreateAsync(identityUser)).Identities.First();
 

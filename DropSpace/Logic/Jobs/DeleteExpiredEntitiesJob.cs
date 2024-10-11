@@ -1,27 +1,45 @@
 ﻿using DropSpace.Infrastructure;
 using DropSpace.Logic.Events.Interfaces;
+using DropSpace.Logic.Files;
 using DropSpace.Logic.Files.Interfaces;
+using DropSpace.Logic.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Quartz;
+using System.Configuration;
 
 namespace DropSpace.Logic.Jobs
 {
-    public class DeleteTimeoutUploadsJob(
+    public class DeleteExpiredEntitiesJob(
     ApplicationContext applicationContext,
-    IEventTransmitter eventTransmitter,
-    IFileVault fileVault,
-    IConfiguration configuration) : IJob
+    ISessionService sessionService,
+    IConfiguration configuration,
+    IFileVault fileVault) : IJob
     {
         public async Task Execute(IJobExecutionContext context)
         {
+            var currentTime = DateTime.UtcNow;
+
+            var sessions = applicationContext.Sessions
+                .Where(session =>
+                        session.Created + session.Duration < currentTime)
+                .AsNoTracking()
+                .ToList();
+
+            foreach (var session in sessions)
+            {
+                await sessionService.Delete(session.Id);
+            }
+
             var uploadTimeout = TimeSpan.FromSeconds(configuration.GetValue<int>("UploadTimeOutSecs"));
-            
+
             var uploads = applicationContext.PendingUploads
                 .Include(upload => upload.File)
                     .ThenInclude(file => file.Session)
                     .ThenInclude(session => session.Members)
                 .Where(upload =>
-                        DateTime.UtcNow - upload.LastChunkUploaded >= uploadTimeout && !upload.IsCompleted);
+                        DateTime.UtcNow - upload.LastChunkUploaded >= uploadTimeout && !upload.IsCompleted)
+                .AsNoTracking()
+                .ToList();
 
             foreach (var upload in uploads)
             {
