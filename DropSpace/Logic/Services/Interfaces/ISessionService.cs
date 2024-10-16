@@ -13,7 +13,7 @@ namespace DropSpace.Logic.Services.Interfaces
         Task<SessionMember> JoinSession(ClaimsPrincipal claimsPrincipal, Guid key);
         Task LeaveSession(ClaimsPrincipal claimsPrincipal, Guid key);
         Task Update(Session entity);
-        Task<bool> CanSave(Guid sessionId, long size);
+        Task<bool> CanSave(Guid sessionId, long size, Guid? fileId = null);
         Task ThrowIfCannotJoin(ClaimsPrincipal claimsPrincipal);
     }
 }

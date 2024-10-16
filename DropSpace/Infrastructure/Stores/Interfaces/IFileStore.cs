@@ -6,11 +6,11 @@ namespace DropSpace.Infrastructure.Stores.Interfaces
     {
         ApplicationContext ApplicationContext { get; }
 
-        Task<Guid> CreateAsync(FileModel fileModel);
+        Task<FileModel> CreateAsync(FileModel fileModel);
 
         Task Delete(Guid id);
 
-        Task Update(Session session);
+        Task Update(FileModel fileModel);
 
         Task<FileModel> GetById(Guid id);
 

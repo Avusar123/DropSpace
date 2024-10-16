@@ -48,7 +48,6 @@ namespace DropSpace.Infrastructure.Stores
             return await applicationContext
                 .Sessions
                 .Include(session => session.Files)
-                    .ThenInclude(file => file.PendingUpload)
                 .Include(session => session.Members)
                 .AsSplitQuery()
                 .Where(session => session.Created + session.Duration > DateTime.UtcNow || includeExpired)

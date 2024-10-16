@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Refit;
 using System.Net;
+using Uploads;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 var cookieContainer = new CookieContainer();
@@ -23,19 +24,18 @@ builder.Services.AddScoped<TokenHttpHandler>();
 builder.Services.AddScoped<CookieHttpHandler>();
 builder.Services.AddScoped<IHubConnectionProvider, HubConnectionProvider>();
 builder.Services.AddScoped<ErrorHandlerFactory>();
+builder.Services.AddScoped<IFileTransmissionManager, FileTransmissionManager>();
 builder.Services.AddBlazorBootstrap();
 builder.Services.AddRefitClient<IAuthService>()
     .WithConfiguration(builder.Configuration)
     .AddHttpMessageHandler<CookieHttpHandler>();
-//.RemoveAllLoggers();
 builder.Services.AddRefitClient<ISessionService>()
     .WithConfiguration(builder.Configuration)
     .AddHttpMessageHandler<TokenHttpHandler>();
-//.RemoveAllLoggers();
 builder.Services.AddRefitClient<IFileService>()
     .WithConfiguration(builder.Configuration)
     .AddHttpMessageHandler<TokenHttpHandler>();
-    //.RemoveAllLoggers();
+builder.Services.AddGrpcClient<Upload.UploadClient>(builder.Configuration);
 var app = builder.Build();
 
 await app.RunAsync();

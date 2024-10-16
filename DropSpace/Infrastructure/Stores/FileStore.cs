@@ -1,4 +1,5 @@
-﻿using DropSpace.Domain;
+﻿using DropSpace.Contracts.Dtos;
+using DropSpace.Domain;
 using DropSpace.Infrastructure.Stores.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,7 +10,7 @@ namespace DropSpace.Infrastructure.Stores
     {
         public ApplicationContext ApplicationContext { get; } = applicationContext;
 
-        public async Task<Guid> CreateAsync(FileModel fileModel)
+        public async Task<FileModel> CreateAsync(FileModel fileModel)
         {
             if (fileModel.Id == Guid.Empty)
                 fileModel.Id = Guid.NewGuid();
@@ -18,7 +19,7 @@ namespace DropSpace.Infrastructure.Stores
 
             await ApplicationContext.SaveChangesAsync();
 
-            return fileModel.Id;
+            return fileModel;
         }
 
         public async Task Delete(Guid id)
@@ -36,7 +37,6 @@ namespace DropSpace.Infrastructure.Stores
         public async Task<List<FileModel>> GetAll(Guid sessionId)
         {
             return await ApplicationContext.Files
-                .Include(file => file.PendingUpload)
                 .Where(file => file.SessionId == sessionId)
                 .ToListAsync();
         }
@@ -45,16 +45,16 @@ namespace DropSpace.Infrastructure.Stores
         {
             return await ApplicationContext
                                     .Files
-                                    .Include(file => file.PendingUpload)
                                     .Include(file => file.Session)
+                                        .ThenInclude(session => session.Members)
                                     .Where(file => file.Id == id)
                                     .FirstOrDefaultAsync()
                                         ?? throw new NullReferenceException("Файл не найден!");
         }
 
-        public async Task Update(Session session)
+        public async Task Update(FileModel file)
         {
-            ApplicationContext.Update(session);
+            ApplicationContext.Update(file);
 
             await ApplicationContext.SaveChangesAsync();
         }

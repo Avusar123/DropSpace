@@ -2,7 +2,7 @@
 
 namespace DropSpace.WebApi.Utils.Interfaces
 {
-    public interface ISeparetedCashe<T> : IDistributedCache
+    public interface ISeparetedCache<T> : IDistributedCache
     {
     }
 }

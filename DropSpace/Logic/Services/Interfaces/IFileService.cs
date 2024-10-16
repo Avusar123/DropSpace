@@ -1,6 +1,6 @@
 ﻿using DropSpace.Contracts.Dtos;
 using DropSpace.Contracts.Models;
-using DropSpace.Domain;
+using Uploads;
 
 namespace DropSpace.Logic.Services.Interfaces
 {
@@ -8,14 +8,14 @@ namespace DropSpace.Logic.Services.Interfaces
     {
         Task<List<FileModelDto>> GetAllFiles(Guid sessionId);
 
-        Task<FileModel> GetFile(Guid fileId);
+        Task<FileModelDto> GetFile(Guid fileId);
 
-        Task<FileModelDto> CreateUpload(InitiateUploadModel initiateNewUpload);
+        Task<FileModelDto> CreateFile(UploadRequest uploadRequest);
 
-        Task<FileModelDto> UploadNewChunk(UploadChunkModel uploadChunkModel);
+        Task<FileModelDto> UploadChunk(Guid fileId, byte[] bytes);
 
         Task<ChunkData> GetChunkData(DownloadChunkModel downloadChunkModel);
 
-        Task Delete(Guid fileId, Guid sessionId);
+        Task Delete(Guid fileId);
     }
 }

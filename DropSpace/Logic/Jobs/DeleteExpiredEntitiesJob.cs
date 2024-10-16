@@ -29,43 +29,6 @@ namespace DropSpace.Logic.Jobs
             {
                 await sessionService.Delete(session.Id);
             }
-
-            var uploadTimeout = TimeSpan.FromSeconds(configuration.GetValue<int>("UploadTimeOutSecs"));
-
-            var uploads = applicationContext.PendingUploads
-                .Include(upload => upload.File)
-                    .ThenInclude(file => file.Session)
-                    .ThenInclude(session => session.Members)
-                .Where(upload =>
-                        DateTime.UtcNow - upload.LastChunkUploaded >= uploadTimeout && !upload.IsCompleted)
-                .AsNoTracking()
-                .ToList();
-
-            foreach (var upload in uploads)
-            {
-                using (var transaction = await applicationContext.Database.BeginTransactionAsync())
-                {
-                    applicationContext.PendingUploads.Remove(upload);
-
-                    applicationContext.Files.Remove(upload.File);
-
-                    await fileVault.DeleteAsync(upload.File.Id.ToString());
-
-                    await applicationContext.SaveChangesAsync();
-
-                    await transaction.CommitAsync();
-                }
-
-                //await eventTransmitter.FireEvent(new NewCh()
-                //{
-                //    UserIds =
-                //        upload.
-                //        Session
-                //        .Members
-                //        .Select(m => m.UserId)
-                //        .ToList()
-                //});
-            }
         }
     }
 }
