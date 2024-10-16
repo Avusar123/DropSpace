@@ -1,14 +1,17 @@
 ﻿@page "/session/{sessionId}"
 @using BlazorBootstrap
 @using DropSpace.Contracts.Dtos
+@using DropSpace.Contracts.Extensions
 @using DropSpace.FrontEnd.Extensions
 @using DropSpace.FrontEnd.Utils
 @using DropSpace.FrontEnd.Utils.ErrorHandlers
 @using DropSpace.FrontEnd.Utils.Interfaces
+@using Google.Protobuf
 @using Microsoft.AspNetCore.SignalR.Client
 @using Contracts.Models
 @using Refit
 @using System.Collections.Concurrent
+@using Uploads
 @implements IDisposable
 @inject NavigationManager navigation
 @inject IHubConnectionProvider hubConnectionProvider
@@ -18,6 +21,7 @@
 @inject ErrorHandlerFactory errorHandlerFactory
 @inject IJSRuntime JSRuntime
 @inject ILogger<Session> logger
+@inject IFileTransmissionManager fileTransmissionManager
 @if (session == null)
 {
     <p class="p-3">Загрузка..</p>
@@ -67,7 +71,7 @@
             </div>
             @foreach (var file in files.Values)
             {
-                @if (file.Upload.IsCompleted)
+                @if (file.IsUploaded)
                 {
                     <div class="file p-2 uploaded-file btn-dark btn d-flex flex-column align-items-center justify-content-center" style="border-radius: 15px; width: 150px; height: 200px;">
                         <div class="d-flex w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
@@ -83,12 +87,15 @@
                 } else
                 {
                     <div class="file p-2 pending-file btn-dark btn d-flex flex-column align-items-center justify-content-center" style="border-radius: 15px; width: 150px; height: 200px;">
-                        <div class="d-flex flex-column w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
-                            <div class="progress" style="flex: 0 0 15%; width: 75%">
-                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: @((int)((file.Upload.SendedSizeMb / file.SizeMb) * 100))%"></div>
+                        @if (file.Upload != null)
+                        {
+                            <div class="d-flex flex-column w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
+                                <div class="progress" style="flex: 0 0 15%; width: 75%">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: @((int)((file.Upload.SendedSizeMb / file.SizeMb) * 100))%"></div>
+                                </div>
+                                <p><span class="sended-size">@file.Upload.SendedSizeMb</span> / @file.SizeMb <span class="subtitle" style="font-size: 0.7em; flex: 0 0 85%; letter-spacing: 1px;">MB</span></p>
                             </div>
-                            <p><span class="sended-size">@file.Upload.SendedSizeMb</span> / @file.SizeMb <span class="subtitle" style="font-size: 0.7em; flex: 0 0 85%; letter-spacing: 1px;">MB</span></p>
-                        </div>
+                        }
                         <div class="spinner-border" role="status" aria-hidden="true"></div>
                         <div class="d-flex w-100 align-items-center text-truncate justify-content-center" style="flex: 0 0 33%">
                             @file.FileName
@@ -181,7 +188,7 @@
             hubConnection.Remove("UserJoined");
         }
 
-        session = null;
+        session = null
     }
 
     protected override async Task OnParametersSetAsync()
@@ -228,7 +235,14 @@
 
         qrCodeComponent.GenerateQRCode(navigation.Uri);
 
-        remainingTimer = new Timer(async (state) =>
+        remainingTimer = CreateTimer();
+
+        await RegisterHubConnectionWithHandlers();
+    }
+
+    private Timer CreateTimer()
+    {
+        return new Timer(async (state) =>
         {
             remainingTime = session.Expired - DateTime.UtcNow;
             StateHasChanged();
@@ -239,8 +253,10 @@
                 await OnSessionRemoved();
             }
         }, null, 0, 1000);
+    }
 
-
+    private async Task RegisterHubConnectionWithHandlers()
+    {
         if (hubConnection == null)
             hubConnection = await hubConnectionProvider.GetOrCreateConnection("SessionNotification");
 
@@ -274,7 +290,7 @@
 
         hubConnection.On("FileUpdated", (FileModelDto file) =>
         {
-            files.AddOrUpdate(file.Id, file, (_,_) =>
+            files.AddOrUpdate(file.Id, file, (_, _) =>
             {
                 return file;
             });
@@ -283,69 +299,39 @@
         });
     }
 
-    private void FileUploaded(InputFileChangeEventArgs args)
+    private async Task FileUploaded(InputFileChangeEventArgs args)
     {
-        Task.Run(async () =>
+        var file = args.File;
+
+        var size = GetFilesSize();
+
+        if (size + file.Size > session!.MaxSize)
         {
-            var file = args.File;
+            await errorHandlerFactory.MessageError.HandleAsync("Файл слишком велик!");
 
-            var size = GetFilesSize();
+            return;
+        }
 
-            if (size + file.Size > session!.MaxSize)
+        using var fileStream = file.OpenReadStream(file.Size);
+
+        await fileTransmissionManager.UploadFile(
+            new UploadRequest()
             {
-                await errorHandlerFactory.MessageError.HandleAsync("Файл слишком велик!");
-
-                return;
-            }
-
-            using var fileStream = file.OpenReadStream(file.Size);
-
-            try
+                FileName = file.Name,
+                SessionId = sessionId,
+                Size = file.Size
+            },
+            fileStream,
+            (fileModel) =>
             {
-                var fileModelDto = await fileService.CreateUpload(
-                    new InitiateUploadModel()
-                    {
-                        Name = file.Name,
-                        SessionId = session.Id,
-                        Size = file.Size
-                    });
-
-                byte[] buffer = new byte[Math.Min(fileModelDto.Upload.ChunkSize, fileModelDto.Size)];
-
-                while (await fileStream.ReadAsync(buffer) > 0)
+                files.AddOrUpdate(fileModel.Id, fileModel, (_, _) =>
                 {
-                    fileModelDto = await fileService.UploadChunk(new UploadChunkModel() { UploadId = fileModelDto.Upload.Id, Chunk = buffer });
+                    return fileModel;
+                });
 
-                    if (fileModelDto.Upload.IsCompleted)
-                    {
-                        return;
-                    }
-
-                    buffer = new byte[Math.Min(fileModelDto.Upload.ChunkSize, fileModelDto.Size - fileModelDto.Upload.SendedSize)];
-                }
-
-                await errorHandlerFactory.MessageError.HandleAsync("Файл был полностью прочитан, но загрузка не удалась!");
-
-
+                StateHasChanged();
             }
-            catch (ApiException ex)
-            {
-
-                if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
-                {
-                    var errors = ex.Content.ParseErrors().Values;
-
-                    await errorHandlerFactory.MessageError.HandleAsync(errors.First().First());
-                }
-
-                if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    await errorHandlerFactory.MessageError.HandleAsync("Увы, но время на загрузку кончилось! Попробуйте еще раз позже");
-                }
-
-                return;
-            }
-        });
+        );
     }
 
     private long GetFilesSize()

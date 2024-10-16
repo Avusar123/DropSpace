@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+option csharp_namespace = "Uploads";
+
+package uploads;
+
+service Upload {
+  rpc UploadFile (FileData) returns (FileModel);
+}
+
+message UploadState {
+	int64 ChunkSize = 1;
+    int64 SendedSize = 2;
+    double SendedSizeMb = 3;
+	bool IsCompleted = 4;
+}
+
+message PushChunkRequest {
+	bytes Data = 1;
+	string FileId = 2;
+}
+
+message FileData {
+	oneof payload {
+		UploadRequest UploadRequest = 1;
+		PushChunkRequest Chunk = 2;
+	}
+}
+
+message UploadRequest {
+	int64 Size = 1;
+	string FileName = 2;
+	string SessionId = 3;
+}
+
+message FileModel {
+	string Id = 1;
+	int64 Size = 2;
+	double SizeMb = 3;
+	string FileName = 4;
+	optional UploadState UploadState = 5;
+}

@@ -4,7 +4,7 @@ using Microsoft.Extensions.Caching.Distributed;
 
 namespace DropSpace.Infrastructure.Stores
 {
-    public class CasheConnectionIdStore(ISeparetedCashe<CasheConnectionIdStore> cashe) : IConnectionIdStore
+    public class CasheConnectionIdStore(ISeparetedCache<CasheConnectionIdStore> cashe) : IConnectionIdStore
     {
         public async Task<List<string>> GetConnectionsId(List<string> userIds)
         {

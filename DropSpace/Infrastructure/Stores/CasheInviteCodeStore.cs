@@ -4,7 +4,7 @@ using Microsoft.Extensions.Caching.Distributed;
 
 namespace DropSpace.Infrastructure.Stores
 {
-    public class CasheInviteCodeStore(ISeparetedCashe<CasheInviteCodeStore> cashe) : IInviteCodeStore
+    public class CasheInviteCodeStore(ISeparetedCache<CasheInviteCodeStore> cashe) : IInviteCodeStore
     {
         public async Task<string?> GetUserIdByCodeOrNull(string code)
         {

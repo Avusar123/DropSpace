@@ -132,17 +132,16 @@ namespace DropSpace.Logic.Services
         {
             await sessionStore.UpdateAsync(entity);
         }
-        public async Task<bool> CanSave(Guid sessionId, long size)
+        public async Task<bool> CanSave(Guid sessionId, long size, Guid? fileId = null)
         {
+            fileId ??= Guid.Empty;
+
             var session = await GetAsync(sessionId);
 
             var totalSize = session
                             .Files
-                            .Where(file => file.PendingUpload != null)
-                            .Select(file =>
-                            {
-                                return file.ByteSize;
-                            })
+                            .Where(file => file.Id != fileId)
+                            .Select(file => file.ByteSize)
                             .Sum();
 
             return session.MaxSize - totalSize >= size;

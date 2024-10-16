@@ -11,6 +11,9 @@ using DropSpace.Logic.Files.Interfaces;
 using DropSpace.Logic.Jobs;
 using DropSpace.Logic.Services;
 using DropSpace.Logic.Services.Interfaces;
+using DropSpace.Logic.Utils.Converters;
+using DropSpace.Logic.Utils.Converters.Interfaces;
+using DropSpace.WebApi.RPCServices;
 using DropSpace.WebApi.SignalRHubs;
 using DropSpace.WebApi.Utils.Cashe;
 using DropSpace.WebApi.Utils.Interfaces;
@@ -42,16 +45,16 @@ builder.Services.AddSingleton<IInviteCodeStore, CasheInviteCodeStore>();
 builder.Services.AddScoped<ISessionStore, SessionStore>();
 builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<IFileStore, FileStore>();
-builder.Services.AddScoped<IPendingUploadStore, PendingUploadStore>();
+builder.Services.AddScoped<IUploadStateStore, UploadStateStore>();
 builder.Services.AddSingleton<IConnectionIdStore, CasheConnectionIdStore>();
 builder.Services.AddSingleton<IEventTransmitter, EventTransmitter>();
 builder.Services.AddScoped<IEventHandler<UserJoinedEvent>, UserJoinedEventHandler>();
 builder.Services.AddScoped<IEventHandler<UserLeftEvent>, UserLeftEventHandler>();
 builder.Services.AddScoped<IEventHandler<FileUpdatedEvent>, FileUpdatedEventHandler>();
 builder.Services.AddScoped<IEventHandler<SessionExpiredEvent>, SessionExpiredEventHandler>();
-builder.Services.AddSingleton(typeof(ISeparetedCashe<>), typeof(SeparetedCashe<>));
+builder.Services.AddSingleton(typeof(ISeparetedCache<>), typeof(SeparetedCashe<>));
 builder.Services.AddSingleton<IRSAKeyProvider, RSAFromFileKeyProvider>();
-
+builder.Services.AddScoped<IFileConverter, FileConverter>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAllOrigins",
@@ -206,6 +209,11 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddSignalR(options => options.EnableDetailedErrors = true);
 
+builder.Services.AddGrpc(options => {
+    options.MaxReceiveMessageSize = 20 * 1024 * 1024;
+    options.MaxSendMessageSize = 20 * 1024 * 1024;
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -227,14 +235,17 @@ else
 
 app.UseCors("AllowAllOrigins");
 
-app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
 
 app.UseAuthorization();
 
+app.UseGrpcWeb();
+
 app.MapHub<SessionsHub>("/hubs/Sessions");
+
+app.MapGrpcService<UploadService>().EnableGrpcWeb();
 
 app.MapControllerRoute(
     name: "default",

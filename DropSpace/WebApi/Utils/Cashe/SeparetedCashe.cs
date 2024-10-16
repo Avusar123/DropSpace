@@ -3,7 +3,7 @@ using Microsoft.Extensions.Caching.Distributed;
 
 namespace DropSpace.WebApi.Utils.Cashe
 {
-    public class SeparetedCashe<T>(IDistributedCache distributedCache) : ISeparetedCashe<T>
+    public class SeparetedCashe<T>(IDistributedCache distributedCache) : ISeparetedCache<T>
     {
         public byte[]? Get(string key)
         {

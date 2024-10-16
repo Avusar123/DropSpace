@@ -8,10 +8,10 @@
 
         public string FileName { get; set; }
 
-        public PendingUploadModel PendingUpload { get; set; }
-
         public Guid SessionId { get; set; }
 
         public Session Session { get; set; }
+
+        public bool IsUploaded { get; set; }
     }
 }

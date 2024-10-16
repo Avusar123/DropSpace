@@ -5,10 +5,8 @@ namespace DropSpace.Contracts.Models
 {
     public class UploadChunkModel
     {
-        [Required]
         public byte[] Chunk { get; set; } = [];
 
-        [Required]
-        public Guid UploadId { get; set; }
+        public Guid FileId { get; set; }
     }
 }

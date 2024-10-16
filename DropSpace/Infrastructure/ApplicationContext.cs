@@ -12,17 +12,10 @@ namespace DropSpace.Infrastructure
 
         public DbSet<FileModel> Files { get; set; }
 
-        public DbSet<PendingUploadModel> PendingUploads { get; set; }
-
         protected override void OnModelCreating(ModelBuilder builder)
         {
             builder.Entity<Session>()
                 .HasMany(session => session.Files);
-
-            builder.Entity<FileModel>()
-                .HasOne(file => file.PendingUpload)
-                .WithOne(upload => upload.File)
-                .HasForeignKey<PendingUploadModel>(upload => upload.FileId);
 
             base.OnModelCreating(builder);
         }

@@ -7,7 +7,10 @@ using DropSpace.Logic.Events.Interfaces;
 using DropSpace.Logic.Extensions;
 using DropSpace.Logic.Files.Interfaces;
 using DropSpace.Logic.Services.Interfaces;
+using DropSpace.Logic.Utils.Converters.Interfaces;
 using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.EntityFrameworkCore;
+using Uploads;
 
 namespace DropSpace.Logic.Services
 {
@@ -16,61 +19,52 @@ namespace DropSpace.Logic.Services
         ISessionStore sessionStore,
         IEventTransmitter eventTransmitter,
         IFileFlowCoordinator fileCoordinator,
+        IFileConverter fileConverter,
         ILogger<FileService> logger) : IFileService
     {
-        public async Task<FileModelDto> CreateUpload(InitiateUploadModel initiateNewUpload)
+        public async Task<FileModelDto> CreateFile(UploadRequest uploadRequest)
         {
-            logger.LogInformation("Начата загрузка файла с именем {name}", initiateNewUpload.Name);
+            logger.LogInformation("Начата загрузка файла с именем {name}", uploadRequest.FileName);
 
-            Guid fileId;
+            using var transaction = await fileStore
+                .ApplicationContext
+                .Database
+                .BeginTransactionAsync();
 
-            using(var transaction = await fileStore.ApplicationContext.Database.BeginTransactionAsync())
+            var fileModel = await fileStore.CreateAsync(new Domain.FileModel()
             {
-                fileId = await fileStore.CreateAsync(new FileModel()
-                {
-                    FileName = initiateNewUpload.Name,
-                    ByteSize = initiateNewUpload.Size,
-                    SessionId = initiateNewUpload.SessionId
-                });
+                FileName = uploadRequest.FileName,
+                ByteSize = uploadRequest.Size,
+                SessionId = Guid.Parse(uploadRequest.SessionId),
+                IsUploaded = false
+            });
 
-                await fileCoordinator.InitiateNewUpload(initiateNewUpload, fileId);
+            var uploadState = await fileCoordinator.InitiateUpload(uploadRequest, fileModel.Id);
 
-                await transaction.CommitAsync();
-            }
+            var session = await sessionStore.GetAsync(Guid.Parse(uploadRequest.SessionId));
 
-            var file = await fileStore.GetById(fileId);
+            var fullfileDto = fileConverter.ConvertToDto(fileModel, uploadState);
 
             await eventTransmitter.FireEvent(
-                new FileUpdatedEvent(file.Session.GetMemberIds(), file.ToDto())
+                new FileUpdatedEvent(session.GetMemberIds(), fileConverter.ConvertToDto(fileModel))
             );
 
-            logger.LogInformation("Загрузка файла с именем {name} успешно сохранена в БД", initiateNewUpload.Name);
+            await transaction.CommitAsync();
 
-            return file.ToDto();
+            logger.LogInformation("Загрузка файла с именем {name} успешно сохранена в БД", uploadRequest.FileName);
 
+            return fullfileDto;
         }
 
-        public async Task Delete(Guid fileId, Guid sessionId)
+        public async Task Delete(Guid fileId)
         {
-            var session = await sessionStore.GetAsync(sessionId);
-
-            if (session.Files.Any(file => file.Id == fileId))
-            {
-                await fileStore.Delete(fileId);
-
-                //await eventTransmitter.FireEvent(
-                //    new FileListChangedEvent()
-                //    {
-                //        UserIds = session.GetMemberIds()
-                //    });
-            }
+            await fileStore.Delete(fileId);
         }
 
         public async Task<List<FileModelDto>> GetAllFiles(Guid sessionId)
         {
             return (await fileStore.GetAll(sessionId))
-                .Select(file =>
-                        file.ToDto()).ToList();
+                .Select(file => fileConverter.ConvertToDto(file)).ToList();
         }
 
         public async Task<ChunkData> GetChunkData(DownloadChunkModel downloadChunkModel)
@@ -93,24 +87,40 @@ namespace DropSpace.Logic.Services
             };
         }
 
-        public async Task<FileModel> GetFile(Guid fileId)
+        public Task<FileModelDto> GetFile(Guid fileId)
         {
-            return await fileStore.GetById(fileId);
+            throw new NotImplementedException();
         }
 
-        public async Task<FileModelDto> UploadNewChunk(UploadChunkModel uploadChunkModel)
+        public async Task<FileModelDto> UploadChunk(Guid fileId, byte[] data)
         {
-            logger.LogInformation("Начато сохранение нового чанка для загрузки {upload}", uploadChunkModel.UploadId);
+            logger.LogInformation("Начато сохранение нового чанка для загрузки файла {file}", fileId);
 
-            var pendingUpload = await fileCoordinator.SaveNewChunk(uploadChunkModel);
+            var file = await fileStore.GetById(fileId);
 
-            logger.LogInformation("Чанк успешно сохранен для загрузки {upload}", uploadChunkModel.UploadId);
+            var uploadState = await fileCoordinator.SaveChunk(
+                new UploadChunkRequest(
+                    fileId,
+                    file.ByteSize, 
+                    data)
+                );
 
-            await eventTransmitter.FireEvent(
-                new FileUpdatedEvent(pendingUpload.File.Session.GetMemberIds(), pendingUpload.File.ToDto())
-            );
+            logger.LogInformation("Чанк успешно сохранен для загрузки файла {file}", fileId);
 
-            return pendingUpload.File.ToDto();
+            file.IsUploaded = uploadState.IsCompleted;
+
+            await fileStore.ApplicationContext.SaveChangesAsync();
+
+            var fileDto = fileConverter.ConvertToDto(file, uploadState.IsCompleted ? null : uploadState);
+
+            if (file.IsUploaded)
+            {
+                await eventTransmitter.FireEvent(
+                    new FileUpdatedEvent(file.Session.GetMemberIds(), fileDto)
+                );
+            }
+
+            return fileDto;
         }
     }
 }
