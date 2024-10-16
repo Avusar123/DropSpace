@@ -11,8 +11,8 @@
 - C# .NET 8, REST API, ASP.NET
 - Entity Framework, Identity Framework
 - Docker и Docker-compose
-- Nginx, Redis
-- Quartz.NET, SignalR
+- Nginx, Redis, PostgreSQL
+- Quartz.NET, SignalR, gRPC
 
 ## Реализованная функциональность
 - Возможность авторизации и регистрации новых пользователей на базе Identity Framework, в том числе возможность временной регистрации в один клик для одноразового пользования сервисом
