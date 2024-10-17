@@ -13,6 +13,8 @@ using DropSpace.Logic.Services;
 using DropSpace.Logic.Services.Interfaces;
 using DropSpace.Logic.Utils.Converters;
 using DropSpace.Logic.Utils.Converters.Interfaces;
+using DropSpace.WebApi.Controllers.Filters.MemberFilter;
+using DropSpace.WebApi.Controllers.Filters.MemberFilter.Providers;
 using DropSpace.WebApi.RPCServices;
 using DropSpace.WebApi.SignalRHubs;
 using DropSpace.WebApi.Utils.Cashe;
@@ -28,6 +30,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Quartz;
 using System.Security.Claims;
+using Uploads;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,10 +54,12 @@ builder.Services.AddSingleton<IEventTransmitter, EventTransmitter>();
 builder.Services.AddScoped<IEventHandler<UserJoinedEvent>, UserJoinedEventHandler>();
 builder.Services.AddScoped<IEventHandler<UserLeftEvent>, UserLeftEventHandler>();
 builder.Services.AddScoped<IEventHandler<FileUpdatedEvent>, FileUpdatedEventHandler>();
+builder.Services.AddScoped<IEventHandler<FileDeletedEvent>, FileDeletedEventHandler>();
 builder.Services.AddScoped<IEventHandler<SessionExpiredEvent>, SessionExpiredEventHandler>();
 builder.Services.AddSingleton(typeof(ISeparetedCache<>), typeof(SeparetedCashe<>));
 builder.Services.AddSingleton<IRSAKeyProvider, RSAFromFileKeyProvider>();
 builder.Services.AddScoped<IFileConverter, FileConverter>();
+builder.Services.RegisterSessionIdProviders();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAllOrigins",
@@ -69,13 +74,29 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddQuartz(q =>
 {
-    q.AddJob<DeleteExpiredEntitiesJob>(opts =>
-    opts.WithIdentity("DeleteExpired", "Session")
+    q.AddJob<DeleteExpiredSessionsJob>(opts =>
+    opts.WithIdentity("DeleteExpiredSessions", "Expired")
+        .RequestRecovery());
+
+    q.AddJob<DeleteDeadUploadsJob>(opts =>
+    opts.WithIdentity("DeleteDead", "Expired")
         .RequestRecovery());
 
     q.AddTrigger(trigger =>
     {
-        trigger.ForJob("DeleteExpired", "Session")
+        trigger.ForJob("DeleteDead", "Expired")
+        .WithSimpleSchedule(shedule =>
+        {
+            shedule
+            .WithIntervalInSeconds(15)
+            .RepeatForever();
+        })
+        .StartNow();
+    });
+
+    q.AddTrigger(trigger =>
+    {
+        trigger.ForJob("DeleteExpiredSessions", "Expired")
         .WithSimpleSchedule(shedule =>
         {
             shedule
@@ -111,7 +132,7 @@ builder.Services.AddSwaggerGen(c =>
                     Id = "Bearer"
                 }
             },
-            new string[] {}
+            Array.Empty<string>()
         }
     });
 });
@@ -189,23 +210,20 @@ builder.Services.AddMemoryCache(options =>
     options.TrackStatistics = true;
 });
 
-builder.Services.AddAuthorization(options =>
-{
-    options.DefaultPolicy = new AuthorizationPolicyBuilder()
+builder.Services.AddAuthorizationBuilder()
+    .SetDefaultPolicy(new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .RequireClaim(ClaimTypes.NameIdentifier)
         .RequireClaim(ClaimTypes.Role)
         .RequireClaim("maxSessions")
         .RequireClaim("sessionDuration")
         .RequireClaim("maxFilesSize")
-        .Build();
-
-    options.AddPolicy("refresh", pb =>
+        .Build())
+    .AddPolicy("refresh", pb =>
     {
         pb.AddAuthenticationSchemes("refresh");
         pb.RequireClaim("type", "refresh");
     });
-});
 
 builder.Services.AddSignalR(options => options.EnableDetailedErrors = true);
 

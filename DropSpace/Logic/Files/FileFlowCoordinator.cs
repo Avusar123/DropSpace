@@ -66,6 +66,11 @@ namespace DropSpace.Logic.Files
         {
             var upload = await pendingUploadStore.GetByFileId(chunkRequest.FileId);
 
+            if (upload == null)
+            {
+                throw new NullReferenceException("Загрузка не найдена!");
+            }
+
             if (!await fileVault.CanFit(chunkRequest.Chunk.LongLength))
             {
                 throw new NotEnoughSpaceException(chunkRequest.Chunk.LongLength);

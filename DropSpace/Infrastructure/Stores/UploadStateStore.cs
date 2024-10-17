@@ -14,7 +14,7 @@ namespace DropSpace.Infrastructure.Stores
         {
             await cache.SetAsync(fileId.ToString(), model.ToByteArray(), new DistributedCacheEntryOptions()
             {
-                //AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30)
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(15)
             });
         }
 
@@ -23,9 +23,14 @@ namespace DropSpace.Infrastructure.Stores
             await cache.RemoveAsync(fileId.ToString());
         }
 
-        public async Task<UploadState> GetByFileId(Guid fileId)
+        public async Task<UploadState?> GetByFileId(Guid fileId)
         {
             var result = await cache.GetAsync(fileId.ToString());
+
+            if (result == null)
+            {
+                return null;
+            }
 
             return UploadState.Parser.ParseFrom(result);
         }

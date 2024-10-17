@@ -40,7 +40,7 @@
                     @session.Name
                 </div>
             </div>
-            <ul class="gap-4 m-0" style="display: flex;">
+            <ul class="gap-4 m-0 d-flex align-items-center">
                 <li class="nav-item text-white flex-column align-items-center" style="cursor: default; display: flex;">
                     <div>
                         <span id="session-size">@Math.Round(GetMbFilesSize(), 2)</span> / @session.MaxSizeMb
@@ -73,7 +73,7 @@
             {
                 @if (file.IsUploaded)
                 {
-                    <div class="file p-2 uploaded-file btn-dark btn d-flex flex-column align-items-center justify-content-center" style="border-radius: 15px; width: 150px; height: 200px;">
+                    <div @onclick="() => SelectFile(file.Id)" class="file @(selectedFiles.Contains(file.Id) ? "active" : "") p-2 uploaded-file btn-dark btn d-flex flex-column align-items-center justify-content-center">
                         <div class="d-flex w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
                             <p><span class="sended-size">@file.SizeMb</span> <span class="subtitle" style="font-size: 0.7em; letter-spacing: 1px;">MB</span></p>
                         </div>
@@ -86,7 +86,7 @@
                     </div>
                 } else
                 {
-                    <div class="file p-2 pending-file btn-dark btn d-flex flex-column align-items-center justify-content-center" style="border-radius: 15px; width: 150px; height: 200px;">
+                    <div class="file p-2 pending-file btn-dark btn d-flex flex-column align-items-center justify-content-center">
                         @if (file.Upload != null)
                         {
                             <div class="d-flex flex-column w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
@@ -105,15 +105,15 @@
 
         }
         </div>
-        <div class="collapse" id="filesActionsNavbar">
-            <div class="bg-dark p-4">
-                <h5 class="text-white h4 mb-4" id="files-counter"></h5>
-                <div class="row gap-4">
-                    <button id="file-download" type="button" class="btn btn-outline-primary" style="width: 10em">
-                        <i class="fa-solid fa-arrow-down"></i> Скачать
+        <div @ref="collapse" class="collapse" id="filesActionsNavbar">
+            <div class="bg-white p-4 d-flex align-items-center justify-content-between">
+                <h5 class="text-white h4 p-3 bg-dark" style="border-radius: 10px" id="files-counter">@selectedFiles.Count</h5>
+                <div class="gap-1 h4 d-flex">
+                    <button id="file-download" type="button" class="btn p-3 bg-dark d-flex flex-column align-items-center justify-content-center" style="border-radius: 10px">
+                        <i class="file-action-i fa-solid fa-arrow-down"></i>
                     </button>
-                    <button id="file-delete" type="button" class="btn btn-outline-danger" style="width: 10em">
-                        <i class="fa-solid fa-trash"></i> Удалить
+                    <button @onclick="DeleteFiles" id="file-delete" type="button" class="btn p-3 bg-dark d-flex flex-column align-items-center justify-content-center" style="border-radius: 10px">
+                        <i class="file-action-i fa-solid fa-trash"></i>
                     </button>
                 </div>
             </div>
@@ -174,6 +174,12 @@
 
     private QRCode qrCodeComponent;
 
+    private List<Guid> selectedFiles = [];
+
+    private ElementReference collapse;
+
+    private bool performingDeletion = false;
+
     public void Dispose()
     {
         files = [];
@@ -186,9 +192,11 @@
             hubConnection.Remove("UserLeft");
 
             hubConnection.Remove("UserJoined");
+
+            hubConnection.Remove("FileDeleted");
         }
 
-        session = null
+        session = null;
     }
 
     protected override async Task OnParametersSetAsync()
@@ -297,6 +305,12 @@
 
             StateHasChanged();
         });
+
+        hubConnection.On("FileDeleted", (Guid fileId) =>
+        {
+            if (files.Remove(fileId, out _))
+                StateHasChanged();
+        });
     }
 
     private async Task FileUploaded(InputFileChangeEventArgs args)
@@ -312,9 +326,9 @@
             return;
         }
 
-        using var fileStream = file.OpenReadStream(file.Size);
+        var fileStream = file.OpenReadStream(file.Size);
 
-        await fileTransmissionManager.UploadFile(
+        fileTransmissionManager.UploadFile(
             new UploadRequest()
             {
                 FileName = file.Name,
@@ -423,6 +437,74 @@
     private async Task AddFile(MouseEventArgs e)
     {
         if (fileInput.Element != null)
-        await JSRuntime.InvokeVoidAsync("click", fileInput.Element);
+            await JSRuntime.InvokeVoidAsync("click", fileInput.Element);
+    }
+    private async Task SelectFile(Guid fileId)
+    {
+        if (performingDeletion)
+        {
+            await errorHandlerFactory.MessageError.HandleAsync("Подождите, удаление уже выполняется..");
+
+            return;
+        }
+
+        if (selectedFiles.Any(f => f == fileId))
+        {
+            selectedFiles.Remove(fileId);
+            if (selectedFiles.Count == 0)
+            {
+                await HideFileActions();
+            }
+        } else
+        {
+            selectedFiles.Add(fileId);
+            if (selectedFiles.Count == 1)
+            {
+                await ShowFileActions();
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task ShowFileActions()
+    {
+        await JSRuntime.InvokeVoidAsync("showCollapse", collapse);
+    }
+
+    private async Task HideFileActions()
+    {
+        await JSRuntime.InvokeVoidAsync("hideCollapse", collapse);
+    }
+
+    private async Task DeleteFiles()
+    {
+        try
+        {
+            if (performingDeletion)
+            {
+                await errorHandlerFactory.MessageError.HandleAsync("Подождите, удаление уже выполняется..");
+
+                return;
+            }
+            else
+            {
+                performingDeletion = true;
+            }
+
+            foreach (var fileId in selectedFiles)
+            {
+                await fileService.Delete(new DeleteFileModel() { FileId = fileId, SessionId = session!.Id });
+            }
+
+            selectedFiles = [];
+
+            await HideFileActions();
+
+            StateHasChanged();
+        } finally
+        {
+            performingDeletion = false;
+        }
     }
 }

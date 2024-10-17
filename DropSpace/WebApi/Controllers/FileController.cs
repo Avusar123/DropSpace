@@ -1,9 +1,7 @@
 ﻿using DropSpace.Contracts.Dtos;
 using DropSpace.Contracts.Models;
-using DropSpace.Logic.Extensions;
 using DropSpace.Logic.Services.Interfaces;
-using DropSpace.WebApi.Controllers.Filters;
-using DropSpace.WebApi.Utils.Requirements;
+using DropSpace.WebApi.Controllers.Filters.MemberFilter;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,7 +14,7 @@ namespace DropSpace.WebApi.Controllers
         IFileService fileService) : ControllerBase
     {
         [HttpDelete]
-        [SessionMemberFilter(nameof(deleteFileModel), "SessionId")]
+        [SessionMemberFilter(nameof(deleteFileModel))]
         public async Task<ActionResult> Delete(DeleteFileModel deleteFileModel)
         {
             if (!ModelState.IsValid)

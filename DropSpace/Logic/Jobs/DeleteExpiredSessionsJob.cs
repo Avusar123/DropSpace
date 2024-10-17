@@ -9,11 +9,9 @@ using System.Configuration;
 
 namespace DropSpace.Logic.Jobs
 {
-    public class DeleteExpiredEntitiesJob(
+    public class DeleteExpiredSessionsJob(
     ApplicationContext applicationContext,
-    ISessionService sessionService,
-    IConfiguration configuration,
-    IFileVault fileVault) : IJob
+    ISessionService sessionService) : IJob
     {
         public async Task Execute(IJobExecutionContext context)
         {

@@ -111,7 +111,7 @@ body {
     background-color: rgba(255,255,255, 0.1)
 }
 
-.active {
+a.active {
     color: white;
     background-color: rgba(255,255,255, 0.2) !important;
 }
@@ -184,6 +184,29 @@ body {
     border-width: 0 !important;
 }
 
+.btn-dark.active {
+    background-color: rgba(0, 0, 0, 0.7);
+    border-width: 0 !important;
+}
+
 .uploaded-file, .pending-file {
     transition: border-width linear 0.1s
+}
+
+.content {
+    min-height: 100%;
+}
+
+.file-action-i {
+    color: white;
+}
+
+@media (max-width: 375px) {
+    .navbar {
+        font-size: 0.8em;
+    }
+    .file {
+        width: 120px;
+        height: 175px;
+    }
 }
