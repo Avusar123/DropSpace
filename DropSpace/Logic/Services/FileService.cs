@@ -20,6 +20,7 @@ namespace DropSpace.Logic.Services
         IEventTransmitter eventTransmitter,
         IFileFlowCoordinator fileCoordinator,
         IFileConverter fileConverter,
+        IFileVault fileVault,
         ILogger<FileService> logger) : IFileService
     {
         public async Task<FileModelDto> CreateFile(UploadRequest uploadRequest)
@@ -58,7 +59,15 @@ namespace DropSpace.Logic.Services
 
         public async Task Delete(Guid fileId)
         {
+            var file = await fileStore.GetById(fileId);
+
+            await eventTransmitter.FireEvent(
+                new FileDeletedEvent(file.Session.GetMemberIds(), fileId)
+            );
+
             await fileStore.Delete(fileId);
+
+            await fileVault.DeleteAsync(fileId.ToString());
         }
 
         public async Task<List<FileModelDto>> GetAllFiles(Guid sessionId)

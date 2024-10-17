@@ -1,12 +1,13 @@
-﻿using DropSpace.WebApi.Utils.Requirements;
+﻿using DropSpace.WebApi.Controllers.Filters.MemberFilter.Providers;
+using DropSpace.WebApi.Utils.Requirements;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
-namespace DropSpace.WebApi.Controllers.Filters
+namespace DropSpace.WebApi.Controllers.Filters.MemberFilter
 {
     [AttributeUsage(AttributeTargets.Method)]
-    public class SessionMemberFilter(string paramName, string? nestedName = null) : Attribute, IAsyncActionFilter
+    public class SessionMemberFilter(string paramName) : Attribute, IAsyncActionFilter
     {
         public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
@@ -17,6 +18,8 @@ namespace DropSpace.WebApi.Controllers.Filters
                     throw new NullReferenceException();
                 }
 
+                using var scope = context.HttpContext.RequestServices.CreateScope();
+
                 Guid sessionId;
 
                 if (model is Guid guid)
@@ -25,12 +28,18 @@ namespace DropSpace.WebApi.Controllers.Filters
                 }
                 else
                 {
-                    var prop = model.GetType().GetProperty(nestedName!);
+                    var modelType = model.GetType();
 
-                    sessionId = (Guid)prop!.GetValue(model)!;
+                    var providerType = typeof(ISessionIdProvider<>).MakeGenericType(modelType);
+
+                    var provider = scope.ServiceProvider
+                            .GetRequiredService(providerType);
+
+                    var method = providerType.GetMethod("GetFrom") 
+                                ?? throw new ArgumentException("Не найдено реализации для заданного типа!");
+                    
+                    sessionId = (Guid)method.Invoke(provider, [model])!;
                 }
-
-                using var scope = context.HttpContext.RequestServices.CreateScope();
 
                 var authService = scope.ServiceProvider.GetRequiredService<IAuthorizationService>();
 

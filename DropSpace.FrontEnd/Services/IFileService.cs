@@ -10,7 +10,7 @@ namespace DropSpace.FrontEnd.Services
         Task<FileModelDto> CreateUpload(InitiateUploadModel initiateUploadModel);
 
         [Delete("/File/")]
-        Task Delete(DeleteFileModel deleteFileModel);
+        Task Delete([Body] DeleteFileModel deleteFileModel);
         //Task<ActionResult> DownloadFileChunk(DownloadChunkModel downloadChunkModel);
 
         [Get("/File/All/{sessionId}")]

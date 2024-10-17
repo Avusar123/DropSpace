@@ -1,4 +1,5 @@
-﻿using Grpc.Net.Client.Web;
+﻿using DropSpace.FrontEnd.HttpHandlers;
+using Grpc.Net.Client.Web;
 
 namespace DropSpace.FrontEnd.Extensions
 {
@@ -8,9 +9,11 @@ namespace DropSpace.FrontEnd.Extensions
             where T : class
         {
             return builder.AddGrpcClient<T>(configureClient: options =>
-                options.Address = new Uri(configuration.GetValue<string>("gRPCServerAddress") 
+                options.Address = new Uri(configuration.GetValue<string>("gRPCServerAddress")
                                         ?? throw new NullReferenceException("Конфигурация отсутствует!")
-                )).ConfigurePrimaryHttpMessageHandler(() => new GrpcWebHandler(new HttpClientHandler()));
+                ))
+                .AddHttpMessageHandler<TokenHttpHandler>()
+                .ConfigurePrimaryHttpMessageHandler(() => new GrpcWebHandler(new HttpClientHandler()));
         }
     }
 }
