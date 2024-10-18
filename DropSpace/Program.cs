@@ -65,11 +65,11 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAllOrigins",
         b =>
         {
-            b.WithOrigins(builder.Configuration.GetValue<string>("ClientAddress")!)
-                       .AllowAnyHeader()
-                       .AllowAnyMethod()
-                       .AllowCredentials()
-                       .WithExposedHeaders("Grpc-Status", "Grpc-Message", "Grpc-Encoding", "Grpc-Accept-Encoding");
+            b.AllowAnyOrigin()
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials()
+                .WithExposedHeaders("Grpc-Status", "Grpc-Message", "Grpc-Encoding", "Grpc-Accept-Encoding");
         });
 });
 
