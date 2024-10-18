@@ -1,6 +1,7 @@
 ﻿using DropSpace.Domain;
 using DropSpace.Infrastructure.Stores.Interfaces;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace DropSpace.Infrastructure
 {
@@ -9,8 +10,6 @@ namespace DropSpace.Infrastructure
         protected async override Task ExecuteAsync(CancellationToken stoppingToken)
         {
             using var scope = serviceProvider.CreateScope();
-
-            var database = scope.ServiceProvider.GetRequiredService<ApplicationContext>();
 
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
 
