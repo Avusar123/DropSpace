@@ -45,11 +45,11 @@ jobs:
 
       - name: Build frontend Docker image
         run: |
-          docker build -t my-frontend-image -f Dockerfile.frontend .
+          docker build -t my-frontend-image:latest -f Dockerfile.frontend .
 
       - name: Build backend Docker image
         run: |
-          docker build -t my-backend-image -f Dockerfile.backend .
+          docker build -t my-backend-image:latest -f Dockerfile.backend .
 
   test:
     runs-on: ubuntu-latest
