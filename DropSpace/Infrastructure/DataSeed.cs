@@ -6,10 +6,11 @@ namespace DropSpace.Infrastructure
 {
     public class DataSeed(IServiceProvider serviceProvider) : BackgroundService
     {
-
         protected async override Task ExecuteAsync(CancellationToken stoppingToken)
         {
             using var scope = serviceProvider.CreateScope();
+
+            var database = scope.ServiceProvider.GetRequiredService<ApplicationContext>();
 
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
 

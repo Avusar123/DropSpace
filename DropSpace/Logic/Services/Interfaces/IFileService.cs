@@ -10,6 +10,8 @@ namespace DropSpace.Logic.Services.Interfaces
 
         Task<FileModelDto> GetFile(Guid fileId);
 
+        Task<Guid> GetSessionId(Guid fileId);
+
         Task<FileModelDto> CreateFile(UploadRequest uploadRequest);
 
         Task<FileModelDto> UploadChunk(Guid fileId, byte[] bytes);

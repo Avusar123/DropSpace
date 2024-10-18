@@ -6,6 +6,17 @@ package uploads;
 
 service Upload {
   rpc UploadFile (FileData) returns (FileModel);
+  rpc DownloadFile (DownloadRequest) returns (stream ChunkResponse);
+}
+
+message DownloadRequest {
+	string FileId = 2;
+}
+
+message ChunkResponse {
+	bytes Data = 1;
+	bool FileEnded = 2;
+	string FileType = 3;
 }
 
 message UploadState {

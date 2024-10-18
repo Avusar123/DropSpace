@@ -66,6 +66,34 @@
             }
         }
 
+        // Функция для инициализации потока
+        window.startFileStream = function () {
+            const stream = new WritableStream();
+
+            window.writer = stream.getWriter();
+        }
+
+        // Функция для записи чанка в поток
+        window.writeChunkToStream = function (chunk) {
+            if (window.writer) {
+                window.writer.write(chunk); // Записываем чанк в поток
+            }
+        }
+
+        // Функция для завершения потока и скачивания файла
+        window.finalizeFileDownload = function (fileName, fileType) {
+            if (window.writer) {
+                window.writer.close().then(() => {
+                    // Создаем Blob и инициируем скачивание
+                    const blob = new Blob([window.writer], { type: fileType });
+                    const link = document.createElement('a');
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = fileName;
+                    link.click();
+                    window.URL.revokeObjectURL(link.href); // Освобождаем URL
+                });
+            }
+        }
     </script>
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>

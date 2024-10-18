@@ -5,5 +5,7 @@
         public byte[] Content { get; set; }
 
         public string ContentType { get; set; }
+
+        public bool FileEnded { get; set; }
     }
 }

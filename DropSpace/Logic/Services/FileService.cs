@@ -65,9 +65,16 @@ namespace DropSpace.Logic.Services
                 new FileDeletedEvent(file.Session.GetMemberIds(), fileId)
             );
 
-            await fileStore.Delete(fileId);
+            using (var transaction = await fileStore.ApplicationContext.Database.BeginTransactionAsync())
+            {
+                await fileStore.Delete(fileId);
 
-            await fileVault.DeleteAsync(fileId.ToString());
+                await fileVault.DeleteAsync(fileId.ToString());
+
+                await transaction.CommitAsync();
+            }
+
+            
         }
 
         public async Task<List<FileModelDto>> GetAllFiles(Guid sessionId)
@@ -89,16 +96,28 @@ namespace DropSpace.Logic.Services
                 contentType = "application/octet-stream";
             }
 
-            return new ChunkData()
+            var chunkData = new ChunkData()
             {
                 ContentType = contentType,
-                Content = content,
+                Content = content
             };
+
+            if (downloadChunkModel.StartWith + content.Length >= file.Size)
+            {
+                chunkData.FileEnded = true;
+            }
+
+            return chunkData;
         }
 
-        public Task<FileModelDto> GetFile(Guid fileId)
+        public async Task<FileModelDto> GetFile(Guid fileId)
         {
-            throw new NotImplementedException();
+            return fileConverter.ConvertToDto(await fileStore.GetById(fileId));
+        }
+
+        public async Task<Guid> GetSessionId(Guid fileId)
+        {
+            return (await fileStore.GetById(fileId)).SessionId;
         }
 
         public async Task<FileModelDto> UploadChunk(Guid fileId, byte[] data)
