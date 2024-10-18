@@ -21,8 +21,8 @@ jobs:
           POSTGRES_PASSWORD: admin
         ports:
           - 5432:5432
-        volumes:
-          - postgres_data:/var/lib/postgresql/data
+        options: >-
+          --mount type=volume,source=postgres_data,target=/var/lib/postgresql/data
 
     steps:
       - name: Checkout code
@@ -61,6 +61,3 @@ jobs:
       #     echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
       #     docker push my-frontend-image
       #     docker push my-backend-image
-
-volumes:
-  postgres_data:
