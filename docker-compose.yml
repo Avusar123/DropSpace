@@ -1,23 +1,43 @@
 version: '3.8'
 
 services:
-  web:
+  backend:
     build:
       context: .
-      dockerfile: DropSpace/Dockerfile
-    networks:
-      - webnet
+      dockerfile: Dockerfile.backend
     ports:
       - "8080:8080"
-
-  nginx:
-    image: nginx:latest
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    depends_on:
+      - db
     networks:
-      - webnet
+      - app-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "7297:80"  # Порт 7297 снаружи связан с портом 80 внутри контейнера Nginx
+    networks:
+      - app-network
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: dropspace
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
 
 networks:
-  webnet:
+  app-network:

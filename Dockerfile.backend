@@ -1,0 +1,27 @@
+# Use the official .NET SDK image for building the app
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copy the project files
+COPY ["DropSpace/DropSpace.csproj", "DropSpace/"]
+COPY ["DropSpace.Contracts/DropSpace.Contracts.csproj", "DropSpace.Contracts/"]
+
+# Restore dependencies
+RUN dotnet restore "DropSpace/DropSpace.csproj"
+
+# Copy the rest of the application files
+COPY . .
+
+# Build and publish the application
+RUN dotnet publish "DropSpace/DropSpace.csproj" -c Release -o /app/publish
+
+# Use the ASP.NET runtime image to run the app
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+WORKDIR /app
+COPY --from=build /app/publish .
+
+# Expose the port that your backend listens on (adjust if necessary)
+EXPOSE 8080
+
+# Start the application
+ENTRYPOINT ["dotnet", "DropSpace.dll"]
