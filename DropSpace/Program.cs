@@ -63,12 +63,13 @@ builder.Services.RegisterSessionIdProviders();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAllOrigins",
-        builder =>
+        b =>
         {
-            builder.WithOrigins("https://localhost:7297")
+            b.WithOrigins(builder.Configuration.GetValue<string>("ClientAddress")!)
                        .AllowAnyHeader()
                        .AllowAnyMethod()
-                       .AllowCredentials();
+                       .AllowCredentials()
+                       .WithExposedHeaders("Grpc-Status", "Grpc-Message", "Grpc-Encoding", "Grpc-Accept-Encoding");
         });
 });
 

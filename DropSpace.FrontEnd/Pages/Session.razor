@@ -77,7 +77,7 @@
                         <div class="d-flex w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
                             <p><span class="sended-size">@file.SizeMb</span> <span class="subtitle" style="font-size: 0.7em; letter-spacing: 1px;">MB</span></p>
                         </div>
-                        <div class="d-flex w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
+                        <div class="d-flex gap-4 flex-column w-100 align-items-center justify-content-center" style="flex: 0 0 33%">
                             <i class="fa-regular fa-file" style="font-size: 6em"></i>
                         </div>
                         <div class="d-flex w-100 align-items-center text-truncate justify-content-center" style="flex: 0 0 33%">
@@ -109,7 +109,7 @@
             <div class="bg-white p-4 d-flex align-items-center justify-content-between">
                 <h5 class="text-white h4 p-3 bg-dark" style="border-radius: 10px" id="files-counter">@selectedFiles.Count</h5>
                 <div class="gap-1 h4 d-flex">
-                    <button id="file-download" type="button" class="btn p-3 bg-dark d-flex flex-column align-items-center justify-content-center" style="border-radius: 10px">
+                    <button @onclick="UploadFiles" id="file-download" type="button" class="btn p-3 bg-dark d-flex flex-column align-items-center justify-content-center" style="border-radius: 10px">
                         <i class="file-action-i fa-solid fa-arrow-down"></i>
                     </button>
                     <button @onclick="DeleteFiles" id="file-delete" type="button" class="btn p-3 bg-dark d-flex flex-column align-items-center justify-content-center" style="border-radius: 10px">
@@ -178,7 +178,7 @@
 
     private ElementReference collapse;
 
-    private bool performingDeletion = false;
+    private bool performingAction = false;
 
     public void Dispose()
     {
@@ -328,7 +328,7 @@
 
         var fileStream = file.OpenReadStream(file.Size);
 
-        fileTransmissionManager.UploadFile(
+        await fileTransmissionManager.UploadFile(
             new UploadRequest()
             {
                 FileName = file.Name,
@@ -441,9 +441,9 @@
     }
     private async Task SelectFile(Guid fileId)
     {
-        if (performingDeletion)
+        if (performingAction)
         {
-            await errorHandlerFactory.MessageError.HandleAsync("Подождите, удаление уже выполняется..");
+            await errorHandlerFactory.LockError.HandleAsync();
 
             return;
         }
@@ -481,15 +481,15 @@
     {
         try
         {
-            if (performingDeletion)
+            if (performingAction)
             {
-                await errorHandlerFactory.MessageError.HandleAsync("Подождите, удаление уже выполняется..");
+                await errorHandlerFactory.LockError.HandleAsync();
 
                 return;
             }
             else
             {
-                performingDeletion = true;
+                performingAction = true;
             }
 
             foreach (var fileId in selectedFiles)
@@ -504,7 +504,60 @@
             StateHasChanged();
         } finally
         {
-            performingDeletion = false;
+            performingAction = false;
+        }
+    }
+    private async Task UploadFiles(MouseEventArgs e)
+    {
+        try
+        {
+            if (performingAction)
+            {
+                await errorHandlerFactory.LockError.HandleAsync();
+
+                return;
+            }
+            else
+            {
+                performingAction = true;
+            }
+
+            foreach (var fileId in selectedFiles)
+            {
+                await fileTransmissionManager.QueueFileToDownload(
+                    new DownloadModel(
+                        new DownloadRequest()
+                        {
+                            FileId = fileId.ToString()
+                        },
+                        async (request, response) =>
+                        {
+                            await JSRuntime.InvokeVoidAsync("writeChunkToStream", response.Data.ToByteArray());
+
+                            if (response.FileEnded)
+                            {
+                                await JSRuntime.InvokeVoidAsync(
+                                    "finalizeFileDownload", 
+                                    files[fileId].FileName,
+                                    response.FileType);
+                            }
+                        },
+                        async (request) =>
+                        {
+                            await JSRuntime.InvokeVoidAsync("startFileStream");
+                        }
+                    )
+                );
+            }
+        } finally
+        {
+            performingAction = false;
+
+            selectedFiles.Clear();
+
+            StateHasChanged();
+
+            await HideFileActions();
         }
     }
 }

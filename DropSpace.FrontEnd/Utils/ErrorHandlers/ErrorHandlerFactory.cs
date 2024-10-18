@@ -10,6 +10,9 @@
         public ErrorHandler<string> MessageError =>
             ActivatorUtilities.CreateInstance<MessageErrorHandler>(serviceProvider);
 
+        public ErrorHandler LockError =>
+            ActivatorUtilities.CreateInstance<LockErrorHandler>(serviceProvider);
+
         public ErrorHandler<string> HubError =>
             ActivatorUtilities.CreateInstance<HubErrorHandler>(serviceProvider);
     }

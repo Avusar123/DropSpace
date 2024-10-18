@@ -13,7 +13,11 @@ namespace DropSpace.FrontEnd.Extensions
                                         ?? throw new NullReferenceException("Конфигурация отсутствует!")
                 ))
                 .AddHttpMessageHandler<TokenHttpHandler>()
-                .ConfigurePrimaryHttpMessageHandler(() => new GrpcWebHandler(new HttpClientHandler()));
+                .ConfigurePrimaryHttpMessageHandler(() => new GrpcWebHandler(new HttpClientHandler()))
+                .ConfigureChannel(options =>
+                {
+                    options.MaxReceiveMessageSize = 20 * 1024 * 1024;
+                });
         }
     }
 }

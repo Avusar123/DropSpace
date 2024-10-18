@@ -6,5 +6,7 @@ namespace DropSpace.FrontEnd.Utils.Interfaces
     public interface IFileTransmissionManager
     {
         Task UploadFile(UploadRequest request, Stream fileStream, Action<FileModelDto> uploadCallback);
+
+        Task QueueFileToDownload(DownloadModel downloadModel);
     }
 }
