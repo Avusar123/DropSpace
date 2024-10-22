@@ -19,7 +19,9 @@ namespace DropSpace.FrontEnd.HttpHandlers
                 throw new NullReferenceException("Запрос пуст!");
             }
 
-            var uriBuilder = new UriBuilder();
+            var baseAddress = request.RequestUri.GetLeftPart(UriPartial.Authority);
+
+            var uriBuilder = new UriBuilder(baseAddress);
 
             uriBuilder.Path = configuration["rpcPrefix"] + request.RequestUri.AbsolutePath;
 
