@@ -13,10 +13,8 @@ namespace DropSpace.FrontEnd.HttpHandlers
     {
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-                var token = await tokenProvider.GetToken();
-
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
+                await ConfigureRequest(request);
+                
                 var response = await base.SendAsync(request, cancellationToken);
 
                 if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
@@ -39,6 +37,13 @@ namespace DropSpace.FrontEnd.HttpHandlers
                 }
 
                 return response;
+        }
+
+        protected virtual async Task ConfigureRequest(HttpRequestMessage request)
+        {
+            var token = await tokenProvider.GetToken();
+
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         }
     }
 }

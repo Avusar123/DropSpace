@@ -22,6 +22,7 @@ builder.Services.AddSingleton<EventTransmitter>();
 builder.Services.AddScoped<AuthManager>();
 builder.Services.AddScoped<TokenHttpHandler>();
 builder.Services.AddScoped<CookieHttpHandler>();
+builder.Services.AddScoped<RpcHttpHandler>();
 builder.Services.AddScoped<IHubConnectionProvider, HubConnectionProvider>();
 builder.Services.AddScoped<ErrorHandlerFactory>();
 builder.Services.AddScoped<IFileTransmissionManager, FileTransmissionManager>();

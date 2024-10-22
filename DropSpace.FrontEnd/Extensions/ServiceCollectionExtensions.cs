@@ -12,7 +12,7 @@ namespace DropSpace.FrontEnd.Extensions
                 options.Address = new Uri(configuration.GetValue<string>("gRPCServerAddress")
                                         ?? throw new NullReferenceException("Конфигурация отсутствует!")
                 ))
-                .AddHttpMessageHandler<TokenHttpHandler>()
+                .AddHttpMessageHandler<RpcHttpHandler>()
                 .ConfigurePrimaryHttpMessageHandler(() => new GrpcWebHandler(new HttpClientHandler()))
                 .ConfigureChannel(options =>
                 {
