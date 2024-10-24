@@ -66,9 +66,18 @@
             }
         }
 
-        // Функция для инициализации потока
         window.startFileStream = function () {
-            const stream = new WritableStream();
+            window.streamData = []; // Инициализируем массив для хранения данных чанков
+
+            const stream = new WritableStream({
+                write(chunk) {
+                    // Пушим чанк данных в массив
+                    window.streamData.push(chunk);
+                },
+                close() {
+                    console.log('Поток закрыт, все данные записаны.');
+                }
+            });
 
             window.writer = stream.getWriter();
         }
@@ -84,8 +93,8 @@
         window.finalizeFileDownload = function (fileName, fileType) {
             if (window.writer) {
                 window.writer.close().then(() => {
-                    // Создаем Blob и инициируем скачивание
-                    const blob = new Blob([window.writer], { type: fileType });
+                    // Создаем Blob из данных, собранных в streamData
+                    const blob = new Blob(window.streamData, { type: fileType });
                     const link = document.createElement('a');
                     link.href = window.URL.createObjectURL(blob);
                     link.download = fileName;
