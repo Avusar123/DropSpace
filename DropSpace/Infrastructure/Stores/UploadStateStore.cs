@@ -8,13 +8,15 @@ using Uploads;
 
 namespace DropSpace.Infrastructure.Stores
 {
-    public class UploadStateStore(ISeparetedCache<UploadStateStore> cache) : IUploadStateStore
+    public class UploadStateStore(ISeparetedCache<UploadStateStore> cache, IConfiguration configuration) : IUploadStateStore
     {
+        private readonly TimeSpan uploadExpiration = TimeSpan.FromSeconds(configuration.GetValue<int>("UploadTimeOutSecs"));
+
         public async Task SetAsync(UploadState model, Guid fileId)
         {
             await cache.SetAsync(fileId.ToString(), model.ToByteArray(), new DistributedCacheEntryOptions()
             {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(15)
+                AbsoluteExpirationRelativeToNow = uploadExpiration
             });
         }
 
