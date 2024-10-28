@@ -1,0 +1,9 @@
+{
+    "ServerAddress": "https://localhost:8080",
+    "gRPCServerAddress": "https://localhost:8081",
+    "rpcPrefix": "",
+    "Hubs": {
+      "SessionNotification": "https://localhost:8080/hubs/Sessions"
+    }
+  }
+  
